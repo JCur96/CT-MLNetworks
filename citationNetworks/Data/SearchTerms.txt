@@ -1,0 +1,1 @@
+((camera-trap* OR "camera* survey*" OR "camera* trap*" OR "remot* camera*" OR "automat* camera*" OR "camera* site*" OR "camera* station*" OR "conduct* camera*" OR "scale* camera*" OR "systemat* camera*" OR "trigger* camera*"))
