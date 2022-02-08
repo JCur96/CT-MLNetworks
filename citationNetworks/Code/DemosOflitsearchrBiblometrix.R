@@ -217,6 +217,8 @@ articles_found <- litsearchr::check_recall(true_hits = gold_standard,
 articles_found 
 m <- articles_found
 badMatches <- m[m[,"Similarity"] < 1,]
+badMatches
+nrow(badMatches)
 badMatches[,"Title"]
 
 #articles_found_df <- data.frame(articles_found)
