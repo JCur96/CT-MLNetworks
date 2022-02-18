@@ -10,77 +10,93 @@ library(bibliometrix)
 #################################
 setwd("C:/docNonNetwork/RProjects/citationNetworks/Code")
 
-# Note: system.file() is only used to identify where the example datasets are stored
-# If litsearchr and its dependencies were successfully installed, this directory exists on your computer
+generateTerms <- function(inputDir, outFilePath, removedupeMethod = "string_osa", 
+                          numStudiesTermOccurs = 10, numTimesTermOccurs = 10, 
+                          cutoffMethod = "changepoint", numKnots = 3, numCumulative = 0.8, cutoffImpl = "strength") 
+  {
+    import <-
+      litsearchr::import_results(directory = inputDir, verbose = TRUE)
+    results <-
+      litsearchr::remove_duplicates(import, field = "title", method = removedupeMethod)
 
-# If you are using your own bibliographic files, you should not use system.file
-# You should instead give it the full path (or relative path from your current working directory) to the directory where your files are stored
-search_directory <- "../Data/LitSearches/" # system.file("extdata", package="litsearchr")
+    rakedkeywords <-
+      litsearchr::extract_terms(
+        text = paste(results$title, results$abstract),
+        method = "fakerake",
+        min_freq = 2,
+        ngrams = TRUE,
+        min_n = 2,
+        language = "English"
+      )
+    
+    taggedkeywords <-
+      litsearchr::extract_terms(
+        keywords = results$keywords,
+        method = "tagged",
+        min_freq = 2,
+        ngrams = TRUE,
+        min_n = 2,
+        language = "English"
+      )
+    all_keywords <- unique(append(taggedkeywords, rakedkeywords))
+    #print("Generating document feature matrix...")
+    dfm <-
+      litsearchr::create_dfm(
+        elements = paste(results$title, results$abstract),
+        features = all_keywords
+      )
+    #print("done")
+    graph <-
+      litsearchr::create_network(
+        search_dfm = dfm,
+        min_studies = numStudiesTermOccurs,
+        min_occ = numTimesTermOccurs
+      )
+    if (cutoffMethod == "changepoint") {
+      cutoff <-
+        litsearchr::find_cutoff(
+          graph,
+          method = "changepoint",
+          knot_num = numKnots,
+          imp_method = cutoffImpl
+        ) 
+    } else {
+      cutoff <-
+        litsearchr::find_cutoff(
+          graph,
+          method = "cumulative",
+          percent = numCumulative,
+          imp_method = cutoffImpl
+        )
+    }
+    
+    reducedgraph <-
+      litsearchr::reduce_graph(graph, cutoff_strength = cutoff[1])
+    
+    searchterms <- litsearchr::get_keywords(reducedgraph)
+    write.csv(searchterms, outFilePath)
+    
+}
 
-naiveimport <-
-  litsearchr::import_results(directory = search_directory, verbose = TRUE)
-#> Reading file /tmp/RtmpGp7mOt/temp_libpath605c6719a3ad/litsearchr/extdata/scopus.ris ... done
-#> Reading file /tmp/RtmpGp7mOt/temp_libpath605c6719a3ad/litsearchr/extdata/zoorec.txt ... done
+compareAgainstGold <- function(inputDir, goldStandard)
+{
+  
+  retrieved_articles <-
+    litsearchr::import_results(directory = inputDir, verbose = TRUE)
+  retrieved_articles <- litsearchr::remove_duplicates(retrieved_articles, field="title", method="string_osa")
+  articles_found <- litsearchr::check_recall(true_hits = goldStandard,
+                                             retrieved = retrieved_articles$title)
+  
+  return(articles_found)
+}
 
-naiveresults <-
-  litsearchr::remove_duplicates(naiveimport, field = "title", method = "string_osa")
+inputDir <- "../Data/LitSearches/CT/"
+outFilePath <- "../Results/searchTerms/CT/search_terms.csv"
+generateTerms(inputDir, outFilePath)
 
-rakedkeywords <-
-  litsearchr::extract_terms(
-    text = paste(naiveresults$title, naiveresults$abstract),
-    method = "fakerake",
-    min_freq = 2,
-    ngrams = TRUE,
-    min_n = 2,
-    language = "English"
-  )
+############
 
-taggedkeywords <-
-  litsearchr::extract_terms(
-    keywords = naiveresults$keywords,
-    method = "tagged",
-    min_freq = 2,
-    ngrams = TRUE,
-    min_n = 2,
-    language = "English"
-  )
-all_keywords <- unique(append(taggedkeywords, rakedkeywords))
-
-naivedfm <-
-  litsearchr::create_dfm(
-    elements = paste(naiveresults$title, naiveresults$abstract),
-    features = all_keywords
-  )
-
-naivegraph <-
-  litsearchr::create_network(
-    search_dfm = naivedfm,
-    min_studies = 10,
-    min_occ = 10
-  )
-# cutoff <-
-#   litsearchr::find_cutoff(
-#     naivegraph,
-#     method = "cumulative",
-#     percent = .80,
-#     imp_method = "strength"
-#   )
-cutoff <-
-  litsearchr::find_cutoff(
-    naivegraph,
-    method = "changepoint",
-    knot_num = 3,
-    imp_method = "strength"
-  )
-
-reducedgraph <-
-  litsearchr::reduce_graph(naivegraph, cutoff_strength = cutoff[1])
-
-searchterms <- litsearchr::get_keywords(reducedgraph)
-
-head(searchterms, 20)
-######
-write.csv(searchterms, "../Data/search_terms.csv")
+######### post-grouping code #############
 # manually group terms in the csv # 
 # not sure there is any way around the above.
 # groups are determined by the researcher, e.g. camera-trap or AI (in the example its Woodpeckers, fire etc.)
@@ -131,7 +147,8 @@ my_search <-
 # if copying straight from the console, simply find and replace them in a text editor
 write(my_search, '../Data/SearchTerms.txt')
 # my_search
-#####
+############# END post grouping code ################
+
 # The gold standard will include known literature from both CVMLCT and CT works
 gold_standard_ML <-
   c(
@@ -203,28 +220,78 @@ for (i in 1:length(just_titles)) {
 gold_standard <- append(flat_title_list, gold_standard_ML)
 gold_standard
 title_search <- litsearchr::write_title_search(titles=gold_standard)
-results_directory <- "../Results/litSearches"
+
 ############ Validating search terms ##############
 ## Run the binary search in WoS, SCOPUS etc.
 ## Import the results and compare to the gold standard list
 ## Happiness
 ######################
-retrieved_articles <-
-  litsearchr::import_results(directory = results_directory, verbose = TRUE)
-retrieved_articles <- litsearchr::remove_duplicates(retrieved_articles, field="title", method="string_osa")
-articles_found <- litsearchr::check_recall(true_hits = gold_standard,
-                                           retrieved = retrieved_articles$title)
-articles_found 
+retrivedResultsDir <- "../Results/litSearches/CT"
+iteratedResultsOutDir <- "../Data/CT/search_terms_iter2.csv"
+generateTerms(retrivedResultsDir, iteratedResultsOutDir)
+results_directoryCT <- "../Results/litSearches/CT"
+articlesFoundCT <- compareAgainstGold(results_directoryCT, gold_standard)
+articles_found
+write.csv(articles_found, "../Results/articlesFound.csv")
 m <- articles_found
 badMatches <- m[m[,"Similarity"] < 1,]
+badMatches
+badMatches <- m[m[,"Similarity"] < 0.5,]
 badMatches
 nrow(badMatches)
 badMatches[,"Title"]
 
-#articles_found_df <- data.frame(articles_found)
-#articles_found_df <- articles_found_df %>% dplyr::filter(Similarity < 1)
+
+
+############## ML Initial #######################
+mlInDir <- "../Data/LitSearches/ML/" # system.file("extdata", package="litsearchr")
+mlOutDir <- "../Data/search_terms_ML.csv"
+generateTerms(mlInDir, mlOutDir)
+title_search <- litsearchr::write_title_search(titles=gold_standard_ML)
+#title_search
+gold_standard_ML
+results_directory <- "../Results/litSearches/ML"
+articles_found <- compareAgainstGold(results_directory, gold_standard_ML)
+articles_found
+write.csv(articles_found, "../Results/articlesFoundML.csv")
+m <- articles_found
+badMatches <- m[m[,"Similarity"] < 1,]
+badMatches
+nrow(badMatches)
+badMatches <- m[m[,"Similarity"] < 0.5,]
+badMatches
+nrow(badMatches)
+badMatches[,"Title"]
+goodMatches <- m[m[,"Similarity"] == 1,]
+nrow(goodMatches)
+goodMatches
 
 #####
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ######### Bibliometrix ################
