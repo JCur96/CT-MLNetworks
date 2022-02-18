@@ -32,8 +32,36 @@ generateTerms <- function(inputDir, outFilePath, removedupeMethod = "string_osa"
       language = "English"
     )
   
-  # differs between scopus and WoS, for WoS use results$keywords, for scopus 
-  # use both / either of results$index_keywords and results$author_keywords
+  # authorKeywords <- tryCatch(litsearchr::extract_terms(
+  #   keywords = results$author_keywords,
+  #   method = "tagged",
+  #   min_freq = 2,
+  #   ngrams = TRUE,
+  #   min_n = 2,
+  #   language = "English"), 
+  #   finally = print("No author keywords, trying index key words"))
+  # 
+  # tryCatch(indexKeywords <- litsearchr::extract_terms(
+  #   keywords = results$index_keywords,
+  #   method = "tagged",
+  #   min_freq = 2,
+  #   ngrams = TRUE,
+  #   min_n = 2,
+  #   language = "English"
+  # ), finally = "No index key words, trying tagged keywords")
+  # 
+  # tryCatch( taggedkeywords <-
+  #             litsearchr::extract_terms(
+  #               keywords = results$keywords,
+  #               method = "tagged",
+  #               min_freq = 2,
+  #               ngrams = TRUE,
+  #               min_n = 2,
+  #               language = "English"
+  #             ), finally("No tagged key words, likely SCOPUS document"))
+  
+  differs between scopus and WoS, for WoS use results$keywords, for scopus
+  use both / either of results$index_keywords and results$author_keywords
   if (scopus == TRUE) {
     authorKeywords <- litsearchr::extract_terms(
       keywords = results$author_keywords,
@@ -51,9 +79,9 @@ generateTerms <- function(inputDir, outFilePath, removedupeMethod = "string_osa"
       min_n = 2,
       language = "English"
     )
-    
+
   } else {
-    
+
     taggedkeywords <-
       litsearchr::extract_terms(
         keywords = results$keywords,
@@ -65,6 +93,7 @@ generateTerms <- function(inputDir, outFilePath, removedupeMethod = "string_osa"
       )
   }
   
+  # tryCatch() # need to work out the try catches tbh 
   if (scopus == TRUE) {
     all_keywords <- unique(append(rakedkeywords, authorKeywords))
     all_keywords <- unique(append(all_keywords, indexKeywords))
@@ -256,6 +285,25 @@ write.csv(badMatches, "../Results/badMatchesArticlesFound.csv")
 ## fresh eyes say find the papers on WoS or SCOPUS to check that they exist ##
 ## or are at least accessible via simple search ## 
 
+## worrying about CT papers now ##
+# generate terms using the papers # 
+generateTerms("../Data/LitSearches/CT/scopus/", "../Results/searchTerms/CT/ctSearchTerms.csv", scopus = TRUE)
+# wow that took like 5 hours to run #
+# but it did run! #
+# read the grouped terms back in and generate the search #
+ctTerms <- read.csv("../Results/searchTerms/CT/ctSearchTerms.csv")
+# extract the camera terms from the csv
+camera_terms <- grouped_terms$term[grep("cameras", grouped_terms$group)]
+# join together a list of manually generated woodpecker terms with the ones from the csv
+cameras <- unique(append(c("camera-trap","camera-traps"), camera_terms)) ## add the original search terms here
+# repeat this for all concept groups e.g. AI/ ML etc. for the real run 
+# then merge them into a list, using the code below as an example
+# mysearchterms <- list(woodpeckers, fire)
+cameraGroup <- list(cameras)
+mysearchterms <- cameraGroup
+# now generate search using the terms and the first search together #
+
+
 # ok so gonna worry about the missing papers for CT later, moving on to ML terms ## 
 # used the papers from the gold standard ML themselves as search terms in scopus ##
 # now will read the results from that in and see what matches we get # 
@@ -264,7 +312,7 @@ write.csv(badMatches, "../Results/badMatchesArticlesFound.csv")
 ## OK so generate terms using all of the results from SCOPUS and WoS ###
 ## then search again using original plus generated and see how we do ##
 CTImportDir <- "../Data/LitSearches/CT/allScopusAndWoS/"
-CTResultsDir <- "../Results/searchTerms/CT/cgtSearchTerms.csv"
+CTResultsDir <- "../Results/searchTerms/CT/ctSearchTerms.csv"
 generateTerms() # will have to rewrite this fun to try catch for keywords as merging WoS and Scopus
 
 
