@@ -60,8 +60,8 @@ generateTerms <- function(inputDir, outFilePath, removedupeMethod = "string_osa"
   #               language = "English"
   #             ), finally("No tagged key words, likely SCOPUS document"))
   
-  differs between scopus and WoS, for WoS use results$keywords, for scopus
-  use both / either of results$index_keywords and results$author_keywords
+# differs between scopus and WoS, for WoS use results$keywords, for scopus
+#  use both / either of results$index_keywords and results$author_keywords
   if (scopus == TRUE) {
     authorKeywords <- litsearchr::extract_terms(
       keywords = results$author_keywords,
@@ -212,20 +212,15 @@ priorCTLit <-
   litsearchr::import_results(directory = search_dir_CT, verbose = TRUE)
 priorCTLit <- priorCTLit %>% dplyr::filter(pubyear >= 2012)
 nrow(priorCTLit)
-
 just_titles <- priorCTLit$title
-#just_titles
-#gold_standard_CT <- list(priorCTLit$title)
 flat_title_list <- c()
 for (i in 1:length(just_titles)) {
   flat_title_list <- append(flat_title_list, just_titles[i])
   
 }
-
 gold_standard <- append(flat_title_list, gold_standard_ML)
 gold_standard
 title_search <- litsearchr::write_title_search(titles=gold_standard)
-
 #####################################################
 ################## Code #############################
 ## Read in the initial search for CT papers
@@ -233,10 +228,12 @@ title_search <- litsearchr::write_title_search(titles=gold_standard)
 ## I.e. those found in;
 ## https://www.frontiersin.org/articles/10.3389/fevo.2021.617996/full
 ## After 2012 
+######################################################
+
+################# CT Term Generation ################
 CTImportDir <- "../Data/LitSearches/CT/FirstCTSearch/"
 articlesFound <- compareAgainstGold(CTImportDir, priorCTLit)
 articlesFound
-
 CTImport1 <-
   litsearchr::import_results(directory = CTImportDir, verbose = TRUE)
 CTImport1 <-
@@ -245,22 +242,18 @@ articles_found1 <- litsearchr::check_recall(true_hits = gold_standard,
                                            retrieved = CTImport$title)
 
 nrow(articles_found1)
-
 write.csv(articles_found, "../Results/articlesFound.csv")
 m <- articles_found1
 badMatches <- m[m[,"Similarity"] < 1,]
 badMatches
 nrow(badMatches)
 write.csv(badMatches, "../Results/articlesFound.csv")
-
 nrow(badMatches)/nrow(articles_found)*100
-
 ## that's 14% of articles missed, possibly an issue, might be solved with scopus ##
 ## ok so WoS doesn't pick up on conference proceedings I think ##
 ## misses the beery paper Efficient pipeline for camera trap image review ##
 ## get that in the secondary documents in socpus tho ##
-
-### using scopus ##
+## using scopus ##
 CTImport2 <-
   litsearchr::import_results(directory = "../Data/LitSearches/CT/scopus/", verbose = TRUE)
 CTImport2 <-
@@ -269,16 +262,12 @@ nrow(CTImport2)
 articles_foundScopus2 <- litsearchr::check_recall(true_hits = gold_standard,
                                            retrieved = CTImport$title)
 nrow(gold_standard)
-
-
 nrow(articles_foundScopus)
 badMatches <- m[m[,"Similarity"] < 1,]
 badMatches
 nrow(badMatches)
 nrow(badMatches)/nrow(articles_foundScopus)*100
 write.csv(badMatches, "../Results/badMatchesArticlesFound.csv")
-
-
 ### at somewhat of a loss, seems to be the same set of bad matches ##
 ## will have to look at this with fresh eyes wed afternoon I think ##
 
@@ -291,17 +280,27 @@ generateTerms("../Data/LitSearches/CT/scopus/", "../Results/searchTerms/CT/ctSea
 # wow that took like 5 hours to run #
 # but it did run! #
 # read the grouped terms back in and generate the search #
-ctTerms <- read.csv("../Results/searchTerms/CT/ctSearchTerms.csv")
+ctTerms <- read.csv("../Results/searchTerms/CT/ctSearchTermsGrouped.csv")
 # extract the camera terms from the csv
-camera_terms <- grouped_terms$term[grep("cameras", grouped_terms$group)]
+termsCamera <- ctTerms$term[grep("camera", ctTerms$group)]
+# pull out other relevant terms here
+termsML <- ctTerms$term[grep("ml", ctTerms$group)]
+termsStudyType <- ctTerms$term[grep("studyType", ctTerms$group)]
+termsLocation <- ctTerms$term[grep("location", ctTerms$group)]
+termsSpecies <- ctTerms$term[grep("species", ctTerms$group)]
 # join together a list of manually generated woodpecker terms with the ones from the csv
-cameras <- unique(append(c("camera-trap","camera-traps"), camera_terms)) ## add the original search terms here
+termsCTcameras <- unique(append(c("camera-trap","camera-traps", "camera trap", 
+                           "infrared triggered camera", "trail camera", 
+                           "automatic camera", "photo trap", "remote camera", 
+                           "remotely triggered camera"), termsCamera)) ## add the original search terms here
 # repeat this for all concept groups e.g. AI/ ML etc. for the real run 
 # then merge them into a list, using the code below as an example
 # mysearchterms <- list(woodpeckers, fire)
-cameraGroup <- list(cameras)
+cameraGroup <- list(termsCTcameras)
 mysearchterms <- cameraGroup
 # now generate search using the terms and the first search together #
+
+################################################################################
 
 
 # ok so gonna worry about the missing papers for CT later, moving on to ML terms ## 
@@ -311,10 +310,27 @@ mysearchterms <- cameraGroup
 
 ## OK so generate terms using all of the results from SCOPUS and WoS ###
 ## then search again using original plus generated and see how we do ##
-CTImportDir <- "../Data/LitSearches/CT/allScopusAndWoS/"
-CTResultsDir <- "../Results/searchTerms/CT/ctSearchTerms.csv"
 generateTerms() # will have to rewrite this fun to try catch for keywords as merging WoS and Scopus
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##################### ML Term Generation #############################
 
 ### using scopus ##
 MLImport1 <-
@@ -329,23 +345,16 @@ nrow(articles_foundScopusML1)
 mlTermsInDir <- "../Data/LitSearches/ML/SCOPUSInitial/"
 mlOutFilePath <- "../Results/searchTerms/ML/mlSearchTerms.csv"
 generateTerms(mlTermsInDir, mlOutFilePath, numStudiesTermOccurs = 3, numTimesTermOccurs = 5, scopus = TRUE)
-
-
-
-
-
-grouped_terms <- read.csv("../Results/searchTerms/ML/mlSearchTermsGrouped.csv")
+# manually group ML terms then return to the next line #
+termsML <- read.csv("../Results/searchTerms/ML/mlSearchTermsGrouped.csv")
 # extract the camera terms from the csv
-cameraTerms <- grouped_terms$term[grep("camera", grouped_terms$group)]
-mlTerms <- grouped_terms$term[grep("ML", grouped_terms$group)]
-ecologyTerms <- grouped_terms$term[grep("ecology", grouped_terms$group)]
-
-mlSearchTerms <- list(cameraTerms, mlTerms, ecologyTerms)
-
-
+termsCTML <- termsML$term[grep("camera", termsML$group)]
+termsMLML <- termsML$term[grep("ML", termsML$group)]
+termsEcologyML <- termsML$term[grep("ecology", termsML$group)]
+termsAllML <- list(termsCTML, termsMLML, termsEcologyML)
 mlSearch <-
   litsearchr::write_search(
-    groupdata = mlSearchTerms,
+    groupdata = termsAllML,
     languages = "English",
     stemming = TRUE,
     closure = "none",
@@ -369,6 +378,50 @@ nrow(articles_foundScopusML)
 # ok great, these hit all of the gold standard ml #
 # combine both initial and this second and that will probably be sufficient #
 
+#################### Unifying terms across CT and ML searches ##################
+termsUnifiedCT <- unique(append(termsCTcameras, termsCTML))
+termsUnifiedML <- unique(append(termsML , termsMLML))
+# possibly need ecology / study type unified terms for each too?
+termsunifiedEcol <- unique(append(termsEcologyML, termsStudyType))
+termsAllUnifiedML <- list(termsUnifiedCT, termsUnifiedML, termsunifiedEcol)
+searchMLFinal <-
+  litsearchr::write_search(
+    groupdata = termsAllUnifiedML,
+    languages = "English",
+    stemming = TRUE,
+    closure = "none",
+    exactphrase = TRUE,
+    writesearch = FALSE,
+    verbose = TRUE
+  )
+write(searchMLFinal, '../Data/ML/searchMLFinal.txt')
+termsAllUnifiedCT <- list(termsUnifiedCT, termsunifiedEcol)
+searchCTFinal <-
+  litsearchr::write_search(
+    groupdata = termsAllUnifiedCT,
+    languages = "English",
+    stemming = TRUE,
+    closure = "none",
+    exactphrase = TRUE,
+    writesearch = FALSE,
+    verbose = TRUE
+  )
+write(searchCTFinal, '../Data/ML/searchCTFinal.txt')
+
+
+# termsAllUnifiedEcol <- list(termsunifiedEcol)
+# searchEcolFinal <-
+#   litsearchr::write_search(
+#     groupdata = termsAllUnifiedEcol,
+#     languages = "English",
+#     stemming = TRUE,
+#     closure = "none",
+#     exactphrase = TRUE,
+#     writesearch = FALSE,
+#     verbose = TRUE
+#   )
+# 
+# write(searchEcolFinal, '../Data/ML/searchEcolFinal.txt')
 
 
 
@@ -381,11 +434,7 @@ nrow(articles_foundScopusML)
 
 
 
-
-
-
-
-
+################################################################################
 
 
 inputDir <- "../Data/LitSearches/CT/FirstCTSearch/"
