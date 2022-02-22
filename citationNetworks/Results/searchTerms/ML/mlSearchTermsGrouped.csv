@@ -1,0 +1,90 @@
+,term,group
+1,access article,articles
+2,access article distributed,articles
+3,aerial vehicle,uav
+4,animal class,ML
+5,animal detection,ML
+6,animal species,ML
+7,article distributed,articles
+8,artificial intelligence,ML
+9,automated identification,ML
+10,average precision,ML
+11,british ecological,misc
+12,british ecological society,misc
+13,camera-trap image,camera
+14,camera-trap images,camera
+15,camera trapping,camera
+16,camera traps,camera
+17,citizen science,misc
+18,citizen scientist,misc
+19,citizen scientists,misc
+20,classification accuracy,ML
+21,classification model,ML
+22,commons attribution,misc
+23,computer vision,ML
+24,convolutional neural,ML
+25,convolutional neural network,ML
+26,convolutional neural networks,ML
+27,creative commons,misc
+28,creative commons attribution,misc
+29,ecological society,misc
+30,endangered species,ecology
+31,evolution published,misc
+32,experimental results,misc
+33,false positive,misc
+34,feature extraction,ML
+35,image classification,ML
+36,image dataset,data
+37,image processing,ML
+38,image recognition,ML
+39,individual identification,ML
+40,large amount,misc
+41,large dataset,data
+42,large number,misc
+43,large volume,misc
+44,learning algorithm,ML
+45,learning algorithms,ML
+46,learning approach,ML
+47,learning method,ML
+48,learning methods,ML
+49,learning model,ML
+50,learning models,ML
+51,learning technique,ML
+52,learning techniques,ML
+53,machine learning,ML
+54,machine learning algorithm,ML
+55,machine learning model,ML
+56,nature switzerland,misc
+57,neural network,ML
+58,neural networks,ML
+59,object detection,ML
+60,paper proposes,misc
+61,proposed method,misc
+62,remote sensing,ML
+63,results demonstrate,misc
+64,results suggest,misc
+65,rights reserved,misc
+66,species identification,ML
+67,springer nature,misc
+68,springer nature switzerland,misc
+69,support vector,ML
+70,support vector machine,ML
+71,training dataset,data
+72,transfer learning,ML
+73,unmanned aerial,uav
+74,unmanned aerial vehicle,uav
+75,vector machine,ML
+76,wildlife monitoring,ecology
+77,wildlife species,ecology
+78,camera trap,camera
+79,camera trap images,camera
+80,data collection,misc
+81,deep convolutional neural network,ML
+82,deep convolutional neural networks,ML
+83,deep learning,ML
+84,deep neural network,ML
+85,deep neural networks,ML
+86,data set,data
+87,training data,ML
+88,wild animal,ecology
+89,wild animals,ecology

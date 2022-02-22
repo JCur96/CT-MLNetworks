@@ -95,10 +95,10 @@ generateTerms <- function(inputDir, outFilePath, removedupeMethod = "string_osa"
   
   # tryCatch() # need to work out the try catches tbh 
   if (scopus == TRUE) {
-    all_keywords <- unique(append(rakedkeywords, authorKeywords))
-    all_keywords <- unique(append(all_keywords, indexKeywords))
+    allKeywords <- unique(append(rakedkeywords, authorKeywords))
+    allKeywords <- unique(append(all_keywords, indexKeywords))
   } else {
-    all_keywords <- unique(append(taggedkeywords, rakedkeywords))
+    allKeywords <- unique(append(taggedkeywords, rakedkeywords))
   }
  
   #print("Generating document feature matrix...")
@@ -143,18 +143,18 @@ generateTerms <- function(inputDir, outFilePath, removedupeMethod = "string_osa"
 compareAgainstGold <- function(inputDir, goldStandard)
 {
   
-  retrieved_articles <-
+  retrievedArticles <-
     litsearchr::import_results(directory = inputDir, verbose = TRUE)
-  retrieved_articles <- litsearchr::remove_duplicates(retrieved_articles, field="title", method="string_osa")
-  articles_found <- litsearchr::check_recall(true_hits = goldStandard,
-                                             retrieved = retrieved_articles$title)
+  retrievedArticles <- litsearchr::remove_duplicates(retrievedArticles, field="title", method="string_osa")
+  articlesFound <- litsearchr::check_recall(true_hits = goldStandard,
+                                             retrieved = retrievedArticles$title)
   
   return(articles_found)
 }
 
 ######################################################
 ############# Setting the Gold Standard ##############
-gold_standard_ML <-
+goldStandardML <-
   c(
     "Automated Image Recognition for Wildlife Camera Traps: Making it Work for You",
     "Zilong: A tool to identify empty images in camera-trap data",
@@ -212,15 +212,15 @@ priorCTLit <-
   litsearchr::import_results(directory = search_dir_CT, verbose = TRUE)
 priorCTLit <- priorCTLit %>% dplyr::filter(pubyear >= 2012)
 nrow(priorCTLit)
-just_titles <- priorCTLit$title
-flat_title_list <- c()
-for (i in 1:length(just_titles)) {
-  flat_title_list <- append(flat_title_list, just_titles[i])
+priorTitles <- priorCTLit$title
+flatTitleList <- c()
+for (i in 1:length(priorTitles)) {
+  flatTitleList <- append(flatTitleList, priorTitles[i])
   
 }
-gold_standard <- append(flat_title_list, gold_standard_ML)
-gold_standard
-title_search <- litsearchr::write_title_search(titles=gold_standard)
+goldStandard <- append(flatTitleList, goldStandardML)
+#goldStandard
+#title_search <- litsearchr::write_title_search(titles=goldStandard)
 #####################################################
 ################## Code #############################
 ## Read in the initial search for CT papers
@@ -238,7 +238,7 @@ CTImport1 <-
   litsearchr::import_results(directory = CTImportDir, verbose = TRUE)
 CTImport1 <-
   litsearchr::remove_duplicates(CTImport1, field = "title", method = "string_osa")
-articles_found1 <- litsearchr::check_recall(true_hits = gold_standard,
+articles_found1 <- litsearchr::check_recall(true_hits = goldStandard,
                                            retrieved = CTImport$title)
 
 nrow(articles_found1)
@@ -259,9 +259,9 @@ CTImport2 <-
 CTImport2 <-
   litsearchr::remove_duplicates(CTImport2, field = "title", method = "string_osa")
 nrow(CTImport2)
-articles_foundScopus2 <- litsearchr::check_recall(true_hits = gold_standard,
+articles_foundScopus2 <- litsearchr::check_recall(true_hits = goldStandard,
                                            retrieved = CTImport$title)
-nrow(gold_standard)
+nrow(goldStandard)
 nrow(articles_foundScopus)
 badMatches <- m[m[,"Similarity"] < 1,]
 badMatches
@@ -338,7 +338,7 @@ MLImport1 <-
 MLImport1 <-
   litsearchr::remove_duplicates(MLImport1, field = "title", method = "string_osa")
 nrow(MLImport1)
-articles_foundScopusML1 <- litsearchr::check_recall(true_hits = gold_standard_ML,
+articles_foundScopusML1 <- litsearchr::check_recall(true_hits = goldStandardML,
                                                  retrieved = MLImport$title)
 nrow(articles_foundScopusML1)
 # ok perfect it hits all 49 papers, lets generate terms # 
@@ -372,7 +372,7 @@ nrow(MLImport)
 MLImport <-
   litsearchr::remove_duplicates(MLImport, field = "title", method = "string_osa")
 nrow(MLImport)
-articles_foundScopusML <- litsearchr::check_recall(true_hits = gold_standard_ML,
+articles_foundScopusML <- litsearchr::check_recall(true_hits = goldStandardML,
                                                    retrieved = MLImport$title)
 nrow(articles_foundScopusML)
 # ok great, these hit all of the gold standard ml #
@@ -406,7 +406,7 @@ searchCTFinal <-
     writesearch = FALSE,
     verbose = TRUE
   )
-write(searchCTFinal, '../Data/ML/searchCTFinal.txt')
+write(searchCTFinal, '../Data/CT/searchCTFinal.txt')
 
 
 # termsAllUnifiedEcol <- list(termsunifiedEcol)
@@ -426,9 +426,27 @@ write(searchCTFinal, '../Data/ML/searchCTFinal.txt')
 
 
 
+################# Comparison to Gold #########################
+MLSCOPUSFinalImport <-
+  litsearchr::import_results(directory = "../Data/LitSearches/ML/SCOPUSFinal/", verbose = TRUE)
+nrow(MLSCOPUSFinalImport)
+MLSCOPUSFinalImport <-
+  litsearchr::remove_duplicates(MLSCOPUSFinalImport, field = "title", method = "string_osa")
+nrow(MLSCOPUSFinalImport)
+foundArticlesML <- litsearchr::check_recall(true_hits = goldStandardML,
+                                                   retrieved = MLSCOPUSFinalImport$title)
+nrow(foundArticlesML)
 
 
-
+CTSCOPUSFinalImport <-
+  litsearchr::import_results(directory = "../Data/LitSearches/CT/SCOPUSFinal/", verbose = TRUE)
+nrow(CTSCOPUSFinalImport)
+CTSCOPUSFinalImport <-
+  litsearchr::remove_duplicates(CTSCOPUSFinalImport, field = "title", method = "string_osa")
+nrow(CTSCOPUSFinalImport)
+foundArticlesCT <- litsearchr::check_recall(true_hits = goldStandard,
+                                                   retrieved = CTSCOPUSFinalImport$title)
+nrow(foundArticlesCT)
 
 
 
@@ -507,7 +525,7 @@ retrivedResultsDir <- "../Results/litSearches/CT"
 iteratedResultsOutDir <- "../Data/CT/search_terms_iter2.csv"
 generateTerms(retrivedResultsDir, iteratedResultsOutDir)
 results_directoryCT <- "../Results/litSearches/CT"
-articlesFoundCT <- compareAgainstGold(results_directoryCT, gold_standard)
+articlesFoundCT <- compareAgainstGold(results_directoryCT, goldStandard)
 articles_found
 write.csv(articles_found, "../Results/articlesFound.csv")
 m <- articles_found
@@ -524,11 +542,11 @@ badMatches[,"Title"]
 mlInDir <- "../Data/LitSearches/ML/" # system.file("extdata", package="litsearchr")
 mlOutDir <- "../Data/search_terms_ML.csv"
 generateTerms(mlInDir, mlOutDir)
-title_search <- litsearchr::write_title_search(titles=gold_standard_ML)
+title_search <- litsearchr::write_title_search(titles=goldStandardML)
 #title_search
-gold_standard_ML
+goldStandardML
 results_directory <- "../Results/litSearches/ML"
-articles_found <- compareAgainstGold(results_directory, gold_standard_ML)
+articles_found <- compareAgainstGold(results_directory, goldStandardML)
 articles_found
 write.csv(articles_found, "../Results/articlesFoundML.csv")
 m <- articles_found
