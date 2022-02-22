@@ -248,7 +248,7 @@ badMatches <- m[m[,"Similarity"] < 1,]
 badMatches
 nrow(badMatches)
 write.csv(badMatches, "../Results/articlesFound.csv")
-nrow(badMatches)/nrow(articles_found)*100
+nrow(badMatches)/nrow(goldStandardDF)*100
 ## that's 14% of articles missed, possibly an issue, might be solved with scopus ##
 ## ok so WoS doesn't pick up on conference proceedings I think ##
 ## misses the beery paper Efficient pipeline for camera trap image review ##
@@ -447,9 +447,15 @@ nrow(CTSCOPUSFinalImport)
 foundArticlesCT <- litsearchr::check_recall(true_hits = goldStandard,
                                                    retrieved = CTSCOPUSFinalImport$title)
 nrow(foundArticlesCT)
-
-
-
+View(goldStandard)
+goldStandardDF <- as.data.frame(goldStandard)
+View(goldStandardDF)
+nrow(goldStandardDF)
+nrow(foundArticlesCT)
+badMatchesCT <- foundArticlesCT[foundArticlesCT[,"Similarity"] < 1,]
+#badMatchesCT
+nrow(badMatchesCT)
+nrow(badMatchesCT)/nrow(goldStandardDF)*100
 
 
 ################################################################################
