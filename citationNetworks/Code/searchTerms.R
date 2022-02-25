@@ -9,7 +9,7 @@ library(bibliometrix)
 
 ######################################################
 ################ Functions ###########################
-setwd("C:/docNonNetwork/RProjects/citationNetworks/Code")
+setwd("C:/docNonNetwork/RProjects/CT-MLNetworks/citationNetworks/Code")
 
 generateTerms <- function(inputDir, outFilePath, removedupeMethod = "string_osa", 
                           numStudiesTermOccurs = 10, numTimesTermOccurs = 10, 
