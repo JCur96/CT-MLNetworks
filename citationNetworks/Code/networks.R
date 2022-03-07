@@ -5,14 +5,22 @@
 ######### Imports #####################
 library(bibliometrix)
 library(igraph)
+library(RColorBrewer)
 
 #######################################
+set.seed(1)
 setwd("C:/docNonNetwork/RProjects/CT-MLNetworks/citationNetworks/Code")
 # read data in
 MLData <- read.csv("../Data/ML/autoScreenedML.csv")
 CTData <- read.csv("../Data/CT/autoScreenedCT.csv")
 MLData$search <- 1
 CTData$search <- 0
+MLData$label <- "ML"
+CTData$label <- "CT"
+MLData$color <- "gold"
+CTData$color <- "blue"
+
+
 
 fullData <- merge(MLData, CTData, all = T) # all data together with which search
 # now make a network?? 
@@ -21,14 +29,22 @@ fullData <- merge(MLData, CTData, all = T) # all data together with which search
 names(fullData)[names(fullData) == "X"] <- "ID"
 colnames(fullData)
 fullData$ID <- 1:nrow(fullData)
+fullData$search <- as.numeric(fullData$search)
 
 nodes <- fullData[c("ID", "title")] # slice of just ID and title
 edges <- fullData[c("ID", "references")] # could be that I want cited_by here 
+edges <- as.data.frame(table(edges))
+edges <- subset(edges, Freq > 0)
+# currently this is an undirected shared reference network I think 
+# or at least it should be as those are the edges 
 #edges <- fullData[c("ID", "cited_by")]
 authors <- fullData[c("ID", "author")]
 journal <- fullData[c("ID", "source_title")]
 year <- fullData[c("ID", "year")]
 search <- fullData[c("ID", "search")]
+label <- fullData[c("ID", "label")]
+color <- fullData[c("ID", "color")]
+references <- fullData[c("ID", "references")]
 
 
 
@@ -40,6 +56,10 @@ net <- set_vertex_attr(net, "journal", value = journal)
 net <- set_vertex_attr(net, "year", value = year)
 net <- set_vertex_attr(net, "search", value = search)
 
+#net
+#netDf <- as_long_data_frame(net)
+#head(netDf)
+#colnames(netDf)
 # below syntax isnt working, will use the old fashioned way
 # V(net)$search <- fullData$search
 # V(net)$journal <- fullData$source_title
@@ -59,40 +79,54 @@ net <- set_vertex_attr(net, "search", value = search)
 
 # coords <- layout.auto(net)
 # plot(simplify(net), layout = coords)
-plot(delete.vertices(simplify(net), degree(net)==0))
+# plot(delete.vertices(simplify(net), degree(net)==0))
+# 
+# 
+# cl<- clusters(net)
+# layout <- layout.fruchterman.reingold(net)
+# plot(net, layout=layout, vertex.label=NA, vertex.color=cl$membership+1L)
+# dg <- decompose.graph(net) # connected components
+# length(dg)
+# plot(dg[[1]])
+# plot(dg[[2]])
+# 
+# 
+# ## for undirected nets ##
+# eb <- edge.betweenness.community(net) # community detection
+# membership <- cut_at(eb, no = 10)
+# plot(net,
+#      vertex.color= rainbow(10, .8, .8, alpha=.8)[membership],
+#      vertex.size=5, layout=layout,  vertex.label=NA,
+#      edge.arrow.size=.2)
+# 
+# # large graph eg
+# layout <- layout.fruchterman.reingold(net)
+# plot(net, layout=layout, vertex.size=2,
+#      vertex.label=NA, edge.arrow.size=.2)
 
+########## Net0 ############
+head(fullData)
+colnames(fullData)
+edgeInteractions <- fullData[c("ID", "author", "cited_by")] # (edges as interactions?)
+nodeAttributes <- fullData[c("ID", "title", "source_title", "year", "search", "references")]
+title <- fullData[c("ID", "title")]
 
-cl<- clusters(net)
-layout <- layout.fruchterman.reingold(net)
-plot(net, layout=layout, vertex.label=NA, vertex.color=cl$membership+1L)
-dg <- decompose.graph(net) # connected components
-length(dg)
-plot(dg[[1]])
-plot(dg[[2]])
-
-
-## for undirected nets ##
-eb <- edge.betweenness.community(net) # community detection
-membership <- cut_at(eb, no = 10)
-plot(net,
-     vertex.color= rainbow(10, .8, .8, alpha=.8)[membership],
-     vertex.size=5, layout=layout,  vertex.label=NA,
-     edge.arrow.size=.2)
-
-# large graph eg
-layout <- layout.fruchterman.reingold(net)
-plot(net, layout=layout, vertex.size=2,
-     vertex.label=NA, edge.arrow.size=.2)
-
-
+net0 <- graph.data.frame(edgeInteractions, directed = F)
+net0 <- set_vertex_attr(net0, "title", value = title)
+layout <- layout.fruchterman.reingold(net0)
+plot(net0,
+     layout=layout, 
+     vertex.size=2,
+     vertex.label=NA)
 ########### second attempt ###################
 ## This one works!  
 ## So references are probably too clunky 
 ## But using the 'cited_by' field works
 ##
-
+nodes <- fullData[c("ID", "title")] # slice of just ID and title
 edges <- fullData[c("ID", "cited_by")]
-references <- fullData[c("ID", "references")]
+#edges <- as.data.frame(table(edges))
+#edges <- subset(edges, Freq > 0)
 net1 <- igraph::graph_from_data_frame(edges)
 net1 <- set_vertex_attr(net1, "title", value = nodes)
 # plot(net)
@@ -101,68 +135,221 @@ net1 <- set_vertex_attr(net1, "journal", value = journal)
 net1 <- set_vertex_attr(net1, "year", value = year)
 net1 <- set_vertex_attr(net1, "search", value = search)
 net1 <- set_vertex_attr(net1, "references", value = references)
+
+V(net1)$color <- ifelse(V(net1)$search == 1, "gold", "blue")
 # large graph eg
 layout <- layout.fruchterman.reingold(net1)
+#pal <- brewer.pal(length(unique(V(net1)$search)), "Set3")
+#colors = c("Red", "Blue")
 plot(net1, layout=layout, vertex.size=2,
-     vertex.label=NA, edge.arrow.size=.2)
-cl<- clusters(net1)
-layout <- layout.fruchterman.reingold(net1)
-plot(net1, layout=layout, vertex.label=NA, vertex.color=cl$membership+1L)
-dg <- decompose.graph(net1) # connected components
-length(dg)
-plot(dg[[1]])
+     vertex.label=NA, 
+     #vertex.color=pal[as.numeric(as.factor(vertex_attr(net1, "search")))],
+     #vertex.color= colors[as.numeric(as.factor(vertex_attr(net1, "search")))],
+     vertex.color= fullData$search,
+     edge.arrow.size=.2)
+
+# cl<- clusters(net1)
+# layout <- layout.fruchterman.reingold(net1)
+# plot(net1, layout=layout, vertex.label=NA, vertex.color=cl$membership+1L)
+# dg <- decompose.graph(net1) # connected components
+# length(dg)
+# plot(dg[[1]])
+
 ########### Third iteration; co-authors ######
-library(dplyr)
-library(stringr)
-library(statnet)
-library(intergraph)
-fullData.coauthors = sapply(as.character(fullData$author), strsplit, ", ")
-fullData.coauthors = lapply(fullData.coauthors, trimws)
-fullData.coauthors = unique(unlist(fullData.coauthors))[order(unique(unlist(fullData.coauthors)))]
-full.bipartite.edges = lapply(fullData.coauthors, function(x) {unique(fullData.coauthors) %in% x})
-full.bipartite.edges = do.call("cbind", full.bipartite.edges) # dimension is number of authors x number of papers
-rownames(full.bipartite.edges) = unique(fullData.coauthors)
-fullData.mat = full.bipartite.edges %*% t(full.bipartite.edges) #bipartite to unimode
-mat = fullData.mat[order(rownames(fullData.mat)), order(rownames(fullData.mat))]
-
-fullData.statnet = as.network(fullData.mat, directed = FALSE, names.eval = "edge.lwd", ignore.eval = FALSE)
-fullData.statnet # view network summary
-fullData.igraph = intergraph::asIgraph(fullData.statnet)
-plot(fullData.igraph)
-
-edges <- fullData[c("ID", "author")]
-net2 <- igraph::graph_from_data_frame(edges)
-net2 <- set_vertex_attr(net2, "title", value = nodes)
-net2 <- set_vertex_attr(net2, "author", value = authors)
+# library(dplyr)
+# library(stringr)
+# library(statnet)
+# library(intergraph)
+# library(visNetwork)
+# 
+# fullData.coauthors = sapply(as.character(fullData$author), strsplit, ", ")
+# fullData.coauthors = lapply(fullData.coauthors, trimws)
+# fullData.coauthors = unique(unlist(fullData.coauthors))[order(unique(unlist(fullData.coauthors)))]
+# full.bipartite.edges = lapply(fullData.coauthors, function(x) {unique(fullData.coauthors) %in% x})
+# full.bipartite.edges = do.call("cbind", full.bipartite.edges) # dimension is number of authors x number of papers
+# rownames(full.bipartite.edges) = unique(fullData.coauthors)
+# fullData.mat = full.bipartite.edges %*% t(full.bipartite.edges) #bipartite to unimode
+# mat = fullData.mat[order(rownames(fullData.mat)), order(rownames(fullData.mat))]
+# 
+# fullData.statnet = as.network(fullData.mat, directed = FALSE, names.eval = "edge.lwd", ignore.eval = FALSE)
+# fullData.statnet # view network summary
+# plot(fullData.statnet)
+# fullData.igraph = intergraph::asIgraph(fullData.statnet)
+# layout <- layout.fruchterman.reingold(fullData.igraph)
+# plot(fullData.igraph, layout = layout)
+# visIgraph(fullData.igraph)
+# 
+# oc <- cluster_optimal()
+# probably should have nodes as authors? 
+# and edges as titles? 
+# or is it authors as edges and titles as nodes?
+edges <- fullData[c("ID", "title")]
+nodes <- fullData[c("ID", "author")]
+# nodes <- fullData[c("ID", "title")]
+# edges <- fullData[c("ID", "author")]
+net2 <- igraph::graph_from_data_frame(edges, directed = FALSE)
+net2 <- set_vertex_attr(net2, "author", value = nodes)
+#net2 <- set_vertex_attr(net2, "title", value = nodes)
+#net2 <- set_vertex_attr(net2, "author", value = authors)
 net2 <- set_vertex_attr(net2, "journal", value = journal)
 net2 <- set_vertex_attr(net2, "year", value = year)
 net2 <- set_vertex_attr(net2, "search", value = search)
 net2 <- set_vertex_attr(net2, "references", value = references)
+net2 <- set_vertex_attr(net2, "label", value = label)
+net2 <- set_vertex_attr(net2, "searchCol", value = color)
+# I have no idea what the underlying data structure of igraph looks like so no 
+# real way to diagnose or fix any issues
 # large graph eg
 layout <- layout.fruchterman.reingold(net2)
+class(V(net2)$search)
+
+
+# answers <- read.table(textConnection(
+#   "  Player Q1_I1                                                             
+#     1      k     1                                                             
+#     2      l     0                                                             
+#     3      n     1                                                             
+#     4      m     0                                                             
+# "))
+# 
+# topology <- read.table(textConnection(
+#   "  Node.1 Node.2                                                            
+#     1      k      l                                                            
+#     2      l      k                                                            
+#     3      l      m                                                            
+#     4      m      l                                                            
+#     5      l      n                                                            
+#     6      n      l                                                            
+#     7      n      k                                                            
+#     8      k      n                                                            
+#  "))
+# g2 <- graph.data.frame(topology, vertices=answers, directed=FALSE)
+# g <- simplify(g2)
+# V(g)$color <- ifelse(V(g)$Q1_I1 == 1, "lightblue", "orange")
+# plot(g)
+
+
+
+
+
+
+V(net2)$color <- ifelse(V(net2)$search == 1, "gold", "blue") #"1"
 plot(net2, layout=layout, vertex.size=2,
      vertex.label=NA, edge.arrow.size=.2)
-cl<- clusters(net2)
-layout <- layout.fruchterman.reingold(net2)
-plot(net2, layout=layout, vertex.label=NA, vertex.color=cl$membership+1L)
-dg <- decompose.graph(net2) # connected components
-length(dg)
-plot(dg[[1]])
 
+V(net2)$degree <- igraph::degree(net2)
+# all attempts at trying to label this graph have failed
+# searchCol <- V(net2)$search + 1
+# searchCol <- coalesce(searchCol, 3) 
+# searchCol <- c("steelblue", "tomato", "white")[searchCol]
+# cbind(original = V(net2)$search[1:10],
+#       colors   = searchCol[1:10])
+net2Df <- as_long_data_frame(net2)
+colnames(net2Df)
+filteredNet2Df <- subset(net2Df, net2Df$to_degree > 1)
+modifiedNet2 <- graph_from_data_frame(filteredNet2Df, directed = FALSE)
+# V(modifiedNet2)$search
+# plot(modifiedNet2, layout=layout, vertex.size=2,
+#      vertex.label=NA, edge.arrow.size=.2)
+# head(net2Df$to_degree)
+# plot each connected subgraph separately
+# searchCol <- V(modifiedNet2)$search + 1
+# searchCol <- coalesce(searchCol, 3) 
+# searchCol <- c("steelblue", "tomato", "white")[searchCol]
+
+# cbind(original = V(modifiedNet2)$search[1:10],
+#       colors   = searchCol[1:10])
+dg <- decompose(modifiedNet2)
+for (i in 1:length(dg)) {
+  plot(dg[[i]],
+       #vertex.label= c("CT", "ML"),
+       #vertex.color=c("blue", "gold"))
+       #vertex.label= )
+       vertex.color= searchCol)
+}
+plot(modifiedNet2, layout=layout, vertex.size=2,
+     vertex.label=NA, edge.arrow.size=.2, vertex.color = searchCol)
+
+# cl<- clusters(net2)
+# layout <- layout.fruchterman.reingold(net2)
+# plot(net2, layout=layout, vertex.label=NA, vertex.color=cl$membership+1L)
+# dg <- decompose.graph(net2) # connected components
+# length(dg)
+# plot(dg[[1]])
+
+
+
+######### No. 4, titles linked by authors #########
+nodes <- fullData[c("ID", "title")]
+#edges <- fullData[c("ID", "cited_by")]
+edges <- fullData[c("ID", "author")]
+references <- fullData[c("ID", "references")]
+net3 <- igraph::graph_from_data_frame(edges, directed = FALSE)
+#net3 <- igraph::graph_from_data_frame(nodes, directed = FALSE)
+#net3 <- set_vertex_attr(net3, "authors", value = edges)
+#net3 <- set_vertex_attr(net3, "title", value = nodes)
+net3 <- set_vertex_attr(net3, "search", value = search)
+net3
+
+#layout=layout.fruchterman.reingold(net3, niter=10000, area=30*vcount(net3)^2)
+
+# Generate colors based on media type:
+colrs <- c("blue", "gold")
+V(net3)$color <- colrs[V(net3)$search]
+
+layout = layout_with_fr(net3)
+
+plot.igraph(simplify(net3), 
+     vertex.color=net3$search,
+     vertex.size=5, layout=layout, vertex.label=NA)
+
+# Community detection based on label propagation:
+clp <- cluster_label_prop(net3)
+class(clp)
+plot(clp, net3)
+
+
+
+net3 <- set_vertex_attr(net3, "author", value = authors)
+net3 <- set_vertex_attr(net3, "journal", value = journal)
+net3 <- set_vertex_attr(net3, "year", value = year)
+net3 <- set_vertex_attr(net3, "search", value = search)
+net3 <- set_vertex_attr(net3, "references", value = references)
 ## for undirected nets ##
-eb <- edge.betweenness.community(net2) # community detection
+eb <- edge.betweenness.community(net3) # community detection
 membership <- cut_at(eb, no = 10)
-plot(net2,
+plot(net3,
      vertex.color= rainbow(10, .8, .8, alpha=.8)[membership],
      vertex.size=5, layout=layout,  vertex.label=NA,
      edge.arrow.size=.2)
 
 
 
+
+############ OK trying again... ###########
+edges <- fullData[c("ID", "author")]
+edges
+verticiesData <- fullData[ , !(names(fullData) %in% c("author"))]
+verticiesData
+net4 <- igraph::graph_from_data_frame(edges, directed = FALSE)
+eb <- edge.betweenness.community(net4) # community detection
+membership <- cut_at(eb, no = 10)
+plot(net4,
+     vertex.color= rainbow(10, .8, .8, alpha=.8)[membership],
+     vertex.size=5, layout=layout,  vertex.label=NA,
+     edge.arrow.size=.2)
+
+filteredNet <- delete.vertices(simplify(net4), degree(net4) < 1)
+hist(degree(filteredNet))
+secondPassNet <- delete.vertices(simplify(filteredNet), degree(filteredNet) == 1)
+hist(degree(secondPassNet))
+
+
 ########### data generation for below ########
 library('dplyr')
 library('igraph')
 library('RColorBrewer')
+
 
 set.seed(1)
 
@@ -230,6 +417,19 @@ igraph.options(vertex.size=8, edge.width=0.75)
 
 # plot network
 plot(g, layout=coords_fr, vertex.color=V(g)$color)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ########################################
