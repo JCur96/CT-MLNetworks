@@ -97,7 +97,7 @@ def awesome_cossim_top(A, B, ntop, lower_bound=0):
             indptr, indices, data)
     return csr_matrix((data,indices,indptr),shape=(M,N))
 
-    t1 = time.time()
+t1 = time.time()
 
 # adjust lower bound: 0.8
 # keep top 10 similar results
@@ -111,7 +111,7 @@ refsDf = pd.read_csv('citationNetworks/Data/SplitRefs.csv')
 #fuzz.ratio(refsDf["Title"], refsDf["Reference"])
 
 # reduce to unique 
-# uniqueRefs = refsDf.drop_duplicates(subset=['ref_title'])
+uniqueRefs = refsDf.drop_duplicates(subset=['ref_title'])
 
 # for i in range(len(uniqueRefs)):
 #     title = uniqueRefs.iloc[i,6] # 6 or title
@@ -132,7 +132,7 @@ refsDf = pd.read_csv('citationNetworks/Data/SplitRefs.csv')
 #     # if ratio > 50:
 #     #     #append to a df with title, re_title, ID, ratio
 #     #     tmpDf = pd.DataFrame([[ID, title, refTitle, ratio]], columns=list('ID', 'Title', 'RefTitle', 'PercentMatch'))
-    
+
 nan_value = float("NaN")
 uniqueRefs = uniqueRefs.replace("", nan_value)
 uniqueRefs = uniqueRefs.dropna(subset=["ref_title"])
