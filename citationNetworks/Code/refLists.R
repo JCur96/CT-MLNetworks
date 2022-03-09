@@ -345,3 +345,12 @@ matchedDf[1,]
 matchedTable <- litsearchr::check_recall(fullData$title, IDLinkedRefDf$ref_title)
 matchedTableDf <- as.data.frame(matchedTable)
 write.csv(matchedTableDf, "../Data/matchedTableDf.csv")
+
+setwd("E:/GitRepos/CT-MLNetworks/citationNetworks/Code")
+numTitles <- length(unique(IDLinkedRefDf$ref_title))
+numTitles
+titleData <- fullData[,c("ID", "title")]
+
+matchedTable <- litsearchr::check_recall(titleData$title, unique(IDLinkedRefDf$ref_title))
+matchedTableDf <- as.data.frame(matchedTable)
+write.csv(matchedTableDf, "../Data/matchedTableDf.csv")
