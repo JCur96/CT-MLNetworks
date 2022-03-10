@@ -17,6 +17,10 @@ colnames(fullData)
 fullData$ID <- 1:nrow(fullData)
 refs <- fullData[c("ID", "references", "title")]
 
+cleanTitles <- refs[c("ID", "title")]
+
+write.csv(cleanTitles, "../Data/cleanTitles.csv")
+
 refs1 <- refs$references[27]
 grep("(?<![^;]).(?![^;])",refs1, value = FALSE, perl=TRUE)
 # grep("(?:^|,)XXX(?:$|,)",df$nms, value = FALSE)
