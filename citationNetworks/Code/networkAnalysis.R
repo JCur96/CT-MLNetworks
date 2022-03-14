@@ -136,8 +136,43 @@ cluster
 # modularity(cluster)
 # modularity(net, membership(cluster))
 members <- igraph::membership(cluster)
-members
+members 
 modularity(net, members)
+
+class(members)
+membersDf <- as.data.frame(members)
+write.csv(as.numeric(members), "../Data/membership.csv")
+# bind the dfs 
+communities <- read.csv("../Data/membership.csv")
+communities
+names(communities)[names(communities) == "X"] <- "ID"
+names(communities)[names(communities) == "x"] <- "Community"
+fullData <- merge(fullData, communities, all = T, by = 'ID')
+# now can see what search each module contains
+# ok maybe drop irrelevant stuff 
+partData <- fullData[c("ID", "search", "Community")]
+groupedData <- partData %>% dplyr::group_split(Community)
+groupedData[[7]]
+# great, now code for proportion of each comm of each search?
+summary(groupedData[[7]])
+
+tab <- groupedData[[7]]
+# class(tab)
+# tab
+# tab <- as.data.frame(tab)
+# tab
+# # tab <- as.array(tab)
+# # tab = margin.table(tab, margin=c(2,2))
+# prop.table(as.data.frame(tab, 2))
+# 
+# tab %>% dplyr::summarize(search)
+counts <- dplyr::count(tab, search)
+totRows <- nrow(tab)
+counts
+# count return col2 value 1 the col 2 value 2 over nrow for proportion
+CTProp <- counts[1,2] / totRows
+MLProp <- counts[2,2] / totRows
+CTProp + MLProp
 
 # is modularity different to random?
 erdos.renyi.game(
