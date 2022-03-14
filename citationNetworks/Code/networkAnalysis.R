@@ -133,9 +133,47 @@ comStructure
 
 cluster <- cluster_louvain(net)
 cluster
+# modularity(cluster)
+# modularity(net, membership(cluster))
 members <- igraph::membership(cluster)
 members
+modularity(net, members)
 
+# is modularity different to random?
+erdos.renyi.game(
+        6372, # number of verticies
+        m = 37584, # number of edges (m) 
+        type = "gnm", # gnm as using 'm' for edges
+        directed = FALSE,
+        loops = FALSE
+)
+
+graph <- sample_gnm(
+        6372,
+        37584,
+        directed = FALSE,
+        loops = FALSE
+)
+
+graphCluster <- cluster_louvain(graph)
+graphMembers <- igraph::membership(graphCluster)
+modularity(graph, graphMembers)
+graph
+
+modularityList <- c()
+for (i in 1:10000) {
+        graph <- sample_gnm(6372, 37584, directed = FALSE, loops = FALSE)
+        graphCluster <- cluster_louvain(graph)
+        graphMembers <- igraph::membership(graphCluster)
+        graphModularity <- modularity(graph, graphMembers)
+        modularityList <- append(modularityList, graphModularity)
+}
+modularityList
+hist(modularityList)
+# visual inspection shows that modularity of clustered members 
+# is outside of 5% tails of hist of random graphs
+# (0.53 compared to 0.23 - 0.25 for 10000 graphs)
+###
 length(unique(members))
 
 memberTable <- table(members)
