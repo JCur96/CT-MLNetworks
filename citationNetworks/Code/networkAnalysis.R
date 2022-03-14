@@ -290,3 +290,4 @@ CTFull <- dataPlusEdges %>% dplyr::filter(dataPlusEdges$label == 'CT')
 
 # plot proportion CT citing ML against year 
 # gephi plot 
+
