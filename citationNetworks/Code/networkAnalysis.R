@@ -24,21 +24,9 @@ names(fullData)[names(fullData) == "X"] <- "ID"
 colnames(fullData)
 fullData$ID <- 1:nrow(fullData)
 fullData$search <- as.numeric(fullData$search)
-
-# fullData$search
-# fullData$label
-# fullData$color
-# fullData$title
-
-# fullDataOdered <- fullData[order(fullData$search),]
-
-
 colnames(edges)
 edges <- edges[c("CitingID", "CitedID")]
 colnames(edges)
-# edges <- as.data.frame(table(edges))
-# edges <- subset(edges, Freq > 0)
-# needs editing to refelect reality below here 
 
 nodes <- fullData[c("ID")] # slice of just ID and title
 
@@ -59,10 +47,7 @@ edges <- as.matrix(edges)
 class(edges)
 edges
 net <- igraph::graph_from_edgelist(edges, directed = FALSE)
-#net <- igraph::graph_from_data_frame(edges, directed = FALSE)
-#plot(net)
 net <- set_vertex_attr(net, "title", value = nodes)
-#plot(net)
 net <- set_vertex_attr(net, "author", value = authors)
 net <- set_vertex_attr(net, "journal", value = journal)
 net <- set_vertex_attr(net, "year", value = year)
@@ -79,8 +64,6 @@ plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
      vertex.color= fullData$search,
      edge.arrow.size=.2)
 coords = layout_(net, with_mds())
-# coords = layout_(net, with_kk())
-# png("../Results/Graphics/InitialPlot.png")
 plot1 <- plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
      vertex.label=NA, 
      vertex.color= fullData$search,
@@ -90,40 +73,7 @@ plot2 <- plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
               vertex.label=NA, 
               vertex.color= fullData$color,
               edge.arrow.size=.2, layout = coords)
-# the layout functions for this are utter garbage
-# edges1 <- subset(edges, Freq > 1)
-# net1 <- igraph::graph_from_data_frame(edges1, directed = FALSE)
-# plot(net)
-# net1 <- set_vertex_attr(net, "title", value = nodes)
-#plot(net)
-# net1 <- set_vertex_attr(net, "author", value = authors)
-# net1 <- set_vertex_attr(net, "journal", value = journal)
-# net1 <- set_vertex_attr(net, "year", value = year)
-# net1 <- set_vertex_attr(net, "search", value = search)
 
-# layout <- layout.fruchterman.reingold(net1)
-# plot(simplify(net1),
-#      layout=layout, vertex.size=2,
-#      vertex.label=NA, 
-#      vertex.color= fullData$search,
-#      edge.arrow.size=.2)
-
-# plot(delete.vertices(simplify(net1), degree(net)==0), vertex.size=2,
-#      vertex.label=NA, 
-#      vertex.color= fullData$search,
-#      edge.arrow.size=.2)
-# coords = layout_(net1, with_mds())
-# coords = layout_(net, with_kk())
-# png("../Results/Graphics/SecondPlot.png")
-# simpleNet <- simplify(net1)
-# simpleNet <- delete.vertices(simpleNet, degree(simpleNet)==0)
-
-# coords = layout_(simpleNet, with_mds())
-# plot2 <- plot(simpleNet, vertex.size=2,
-#               vertex.label=NA, 
-#               vertex.color= fullData$search,
-#               edge.arrow.size=.2, layout = coords)
-# net1$search <- as.numeric(net1$search)
 comStructure <- modularity(net, fullData$search)
 comStructure
 
@@ -154,18 +104,7 @@ partData <- fullData[c("ID", "search", "Community")]
 groupedData <- partData %>% dplyr::group_split(Community)
 groupedData[[7]]
 # great, now code for proportion of each comm of each search?
-summary(groupedData[[7]])
-
 tab <- groupedData[[7]]
-# class(tab)
-# tab
-# tab <- as.data.frame(tab)
-# tab
-# # tab <- as.array(tab)
-# # tab = margin.table(tab, margin=c(2,2))
-# prop.table(as.data.frame(tab, 2))
-# 
-# tab %>% dplyr::summarize(search)
 counts <- dplyr::count(tab, search)
 totRows <- nrow(tab)
 counts
@@ -173,6 +112,59 @@ counts
 CTProp <- counts[1,2] / totRows
 MLProp <- counts[2,2] / totRows
 CTProp + MLProp
+CTProportionList <- c()
+for (i in 1:length(groupedData)) {
+        tab <- groupedData[[i]]
+        counts <- dplyr::count(tab, search)
+        totRows <- nrow(tab)
+        CTProp <- counts[1,2] / totRows
+        MLProp <- counts[2,2] / totRows
+        # CTProp + MLProp
+        CTProportionList <- append(CTProportionList, CTProp)
+        
+}
+CTPropDf <- as.data.frame(unlist(CTProportionList))
+names(CTPropDf)[names(CTPropDf) == "unlist(CTProportionList)"] <- "proportionCT"
+CTPropDf$Community <- 1:nrow(CTPropDf)
+CTPropDf
+partData <- merge(partData, CTPropDf, all=T, by='Community')
+MLProportionList <- c()
+for (i in 1:length(groupedData)) {
+        tab <- groupedData[[i]]
+        counts <- dplyr::count(tab, search)
+        totRows <- nrow(tab)
+        CTProp <- counts[1,2] / totRows
+        MLProp <- counts[2,2] / totRows
+        if (is.na(MLProp)) {
+                MLProp <- 0
+        }
+        # CTProp + MLProp
+        MLProportionList <- append(MLProportionList, MLProp)
+        
+}
+MLProportionList
+# MLPropDf <- c()
+# for (i in 1:length(MLProportionList)) {
+#         comm <- i
+#         #comm <- MLProportionList[[i]]
+#         value <- MLProportionList[[i]][[1]]
+#         row <- c(comm, value)
+#         MLPropDf <- append(MLPropDf, row)
+# }
+# MLPropDf <- as.data.frame(MLPropDf)
+# MLProportionList <- as.data.frame(MLProportionList)
+# MLProportionList <- MLProportionList %>% gather(year, value, -c(Code, Country))
+# MLProportionList
+# partData <- merge(partData, MLProportionList, by='Community')
+# MLPropDf <- as.data.frame(MLPropDf) # ?????????
+MLPropDf <- as.data.frame(unlist(MLProportionList))
+MLPropDf
+colnames(MLPropDf)
+names(MLPropDf)[names(MLPropDf) == "unlist(MLProportionList)"] <- "proportionML"
+MLPropDf$Community <- 1:nrow(MLPropDf)
+MLPropDf$Community
+partData <- merge(partData, MLPropDf, all=T, by='Community')
+################
 
 # is modularity different to random?
 erdos.renyi.game(
@@ -209,11 +201,11 @@ hist(modularityList)
 # is outside of 5% tails of hist of random graphs
 # (0.53 compared to 0.23 - 0.25 for 10000 graphs)
 ###
-length(unique(members))
-
-memberTable <- table(members)
-hist(memberTable, breaks = 500)
-sort(memberTable)
+# length(unique(members))
+# 
+# memberTable <- table(members)
+# hist(memberTable, breaks = 500)
+# sort(memberTable)
 ########################################
 
 
@@ -226,58 +218,58 @@ sort(memberTable)
 #               vertex.color= fullData$search,
 #               edge.arrow.size=.2, layout = coords)
 
-plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
-     vertex.label=NA, 
-     edge.arrow.size=.2, 
-     layout = coords,
-     vertex.color=rainbow(3, alpha=0.6)[cluster$membership])
-centrality <- degree(net, V(net)) # not sure what this is doing 
-centrality
-
-plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
-     vertex.label=NA, 
-     edge.arrow.size=.2, 
-     layout = coords,
-     vertex.color=rainbow(3, alpha=0.6)[centrality])
+# plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
+#      vertex.label=NA, 
+#      edge.arrow.size=.2, 
+#      layout = coords,
+#      vertex.color=rainbow(3, alpha=0.6)[cluster$membership])
+# centrality <- degree(net, V(net)) # not sure what this is doing 
+# centrality
+# 
+# plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
+#      vertex.label=NA, 
+#      edge.arrow.size=.2, 
+#      layout = coords,
+#      vertex.color=rainbow(3, alpha=0.6)[centrality])
 
 
 ########### 
-
-ceb <- cluster_edge_betweenness(net)
-dendPlot(ceb, mode="hclust")
-
-plot(ceb, net)
-
-###########
-clp <- cluster_label_prop(net)
-plot(clp, net)
-
-cfg <- cluster_fast_greedy(as.undirected(net))
-plot(cfg, as.undirected(net))
-
-colrs <- adjustcolor( c("gray50", "tomato", "gold", "yellowgreen"), alpha=.6)
-
-# assortativity_nominal(net, V(net)$search, directed=F)
-net.sym <- as.undirected(net, mode= "collapse",
-                         edge.attr.comb=list(weight="sum", "ignore"))
-cliques(net.sym) # list of cliques
-sapply(cliques(net.sym), length) # clique sizes
-largest_cliques(net.sym) # cliques with max number of nodes
-
-kc <- coreness(net, mode="all")
-plot(net, vertex.size=kc*6, vertex.label=kc, vertex.color=colrs[kc])
-
-assortativity_nominal(net, fullData$search, directed=F)
-assortativity(net, fullData$search, directed = F)
-assortativity.degree(net, directed=F)
-
-
-walkComm <- walktrap.community(net)
-plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
-     vertex.label=NA, 
-     edge.arrow.size=.2, 
-     layout = coords,
-     vertex.color=rainbow(3, alpha=0.6)[walkComm])
+# 
+# ceb <- cluster_edge_betweenness(net)
+# dendPlot(ceb, mode="hclust")
+# 
+# plot(ceb, net)
+# 
+# ###########
+# clp <- cluster_label_prop(net)
+# plot(clp, net)
+# 
+# cfg <- cluster_fast_greedy(as.undirected(net))
+# plot(cfg, as.undirected(net))
+# 
+# colrs <- adjustcolor( c("gray50", "tomato", "gold", "yellowgreen"), alpha=.6)
+# 
+# # assortativity_nominal(net, V(net)$search, directed=F)
+# net.sym <- as.undirected(net, mode= "collapse",
+#                          edge.attr.comb=list(weight="sum", "ignore"))
+# cliques(net.sym) # list of cliques
+# sapply(cliques(net.sym), length) # clique sizes
+# largest_cliques(net.sym) # cliques with max number of nodes
+# 
+# kc <- coreness(net, mode="all")
+# plot(net, vertex.size=kc*6, vertex.label=kc, vertex.color=colrs[kc])
+# 
+# assortativity_nominal(net, fullData$search, directed=F)
+# assortativity(net, fullData$search, directed = F)
+# assortativity.degree(net, directed=F)
+# 
+# 
+# walkComm <- walktrap.community(net)
+# plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
+#      vertex.label=NA, 
+#      edge.arrow.size=.2, 
+#      layout = coords,
+#      vertex.color=rainbow(3, alpha=0.6)[walkComm])
         
 
 
