@@ -164,6 +164,7 @@ names(MLPropDf)[names(MLPropDf) == "unlist(MLProportionList)"] <- "proportionML"
 MLPropDf$Community <- 1:nrow(MLPropDf)
 MLPropDf$Community
 partData <- merge(partData, MLPropDf, all=T, by='Community')
+write.csv(partData, "../Data/community.csv")
 ################
 
 # is modularity different to random?
@@ -281,13 +282,103 @@ edgeDf <- as.data.frame(edges)
 edgeDf <- edgeDf[order(edgeDf$CitingID),] 
 citationListsByNode <- edgeDf %>% 
         dplyr::group_by(CitingID) %>% 
-        dplyr::summarise(CitedID = list(CitedID))
+        dplyr::summarise(CitedID = list(CitedID)) # where cited ID is an ML Citing ID?
 class(citationListsByNode)
+head(citationListsByNode)
+
+## now do actualy proportions 
+propsDf <- edgeDf
+searchDf <- fullData[c("CitingID", "search")]
+searchDf
+names(searchDf)[names(searchDf) == "CitingID"] <- "CitedID"
+names(searchDf)[names(searchDf) == "search"] <- "citedSearch"
+propsDf <- merge(propsDf, searchDf, all = T, by = 'CitedID')
+propsDf <- propsDf[order(propsDf$CitingID),]
+propsDf <- tidyr::drop_na(propsDf)
+colnames(propsDf)
+propsDf <- propsDf %>% dplyr::filter(citedSearch == 2)
+head(propsDf) # this is all the papers which cite ML papers
+# now need to filter to those only in the CT seach
+tmpCTData <- fullData %>% dplyr::filter(search == 1)
+CtIDList <- tmpCTData$CitingID
+propsDf <- propsDf %>% dplyr::filter(CitingID %in% CtIDList)
+head(propsDf)
+propsList <- propsDf %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+# compare length of list of CT IDs to the nrow of this new DF to get proportion
+propCTPapersCitingML <- nrow(propsList) / length(CtIDList)
+propCTPapersCitingML
+
 ##
 dataPlusEdges <- merge(fullData, citationListsByNode, all = T, by = 'CitingID')
 MLFull <- dataPlusEdges %>% dplyr::filter(dataPlusEdges$label == 'ML')
 CTFull <- dataPlusEdges %>% dplyr::filter(dataPlusEdges$label == 'CT')
+colnames(dataPlusEdges)
 
-# plot proportion CT citing ML against year 
+giantConnectedData <- dataPlusEdges[!is.na(dataPlusEdges$CitedID),]
+
+dataPlusEdges <- apply(dataPlusEdges,2,as.character)
+write.csv(dataPlusEdges, "../Data/FullData.csv")
+
+
+# plot proportion CT citing ML against year
+propsDf <- edgeDf
+searchDf <- fullData[c("CitingID", "search", "year")]
+names(searchDf)[names(searchDf) == "CitingID"] <- "CitedID"
+names(searchDf)[names(searchDf) == "search"] <- "citedSearch"
+yearData <- searchDf %>% dplyr::group_split(year)
+length(yearData)
+tmpCTData <- searchDf %>% dplyr::filter(citedSearch == 1)
+# CtIDList <- tmpCTData$CitingID
+
+yearData[[1]][["year"]][[1]]
+propVector <- c()
+for (i in 1:length(yearData)) {
+        #print(yearData[[i]]['year'])
+        tmpsearchDf <- yearData[[i]]
+        tmpPropsDf <- merge(propsDf, tmpsearchDf, all = T, by = 'CitedID')
+        tmpPropsDf <- tidyr::drop_na(tmpPropsDf)
+        tmpPropsDf <- tmpPropsDf[order(tmpPropsDf$CitingID),]
+        tmpPropsDf <- tmpPropsDf %>% dplyr::filter(citedSearch == 2)
+        currentYear <- yearData[[i]][["year"]][[1]]
+        yearCTList <- tmpCTData %>% dplyr::filter(year == currentYear)
+        CtIDList <- yearCTList$CitedID
+        tmpPropsDf <- tmpPropsDf %>% dplyr::filter(CitingID %in% CtIDList)
+        #print(head(tmpPropsDf))
+        tmpPropsList <- tmpPropsDf %>% 
+                dplyr::group_by(CitingID) %>% 
+                dplyr::summarise(CitedID = list(CitedID))
+        proportion <- nrow(tmpPropsList) / length(CtIDList)
+        print(proportion*100)
+        propVector <- append(propVector, proportion)
+        
+}
+
+sum(propVector)
+
+getPropCiting <- function(propsDf, yearData) {
+        propYearVector <- c()
+        tmpPropsDf <- propsDf
+        for (i in 1:length(yearData)) {
+                tmpPropsDf <- merge(tmpPropsDf, yearData[[i]], all = T, by = 'CitedID')
+                tmpPropsDf <- tmpPropsDf[order(tmpPropsDf$CitingID),]
+                tmpPropsDf <- tidyr::drop_na(tmpPropsDf)
+                tmpPropsDf <- tmpPropsDf %>% dplyr::filter(citedSearch == 2)
+
+                tmpPropsDf <- tmpPropsDf %>% dplyr::filter(CitingID %in% CtIDList)
+                propsList <- tmpPropsDf %>% 
+                        dplyr::group_by(CitingID) %>% 
+                        dplyr::summarise(CitedID = list(CitedID))
+                propCTPapersCitingML <- nrow(propsList) / length(CtIDList)
+                append(propYearVector, propCTPapersCitingML)
+        }
+        
+        return(propYearVector)
+}
+propVector <- getPropCiting(propsDf, yearData)
 # gephi plot 
-
+giantConnectedData <- dataPlusEdges[!is.na(dataPlusEdges$CitedID),]
+giantConnectedData <- apply(giantConnectedData,2,as.character)
+write.csv(giantConnectedData, "../Data/GiantConnected.csv")
+# read the above + plus the edgelist in to get only connected nodes 
