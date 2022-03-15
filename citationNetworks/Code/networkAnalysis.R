@@ -307,6 +307,8 @@ propsList <- propsDf %>%
         dplyr::group_by(CitingID) %>% 
         dplyr::summarise(CitedID = list(CitedID))
 # compare length of list of CT IDs to the nrow of this new DF to get proportion
+nrow(propsList)
+length(CtIDList)
 propCTPapersCitingML <- nrow(propsList) / length(CtIDList)
 propCTPapersCitingML
 
@@ -334,49 +336,42 @@ tmpCTData <- searchDf %>% dplyr::filter(citedSearch == 1)
 
 yearData[[1]][["year"]][[1]]
 propVector <- c()
+outerList <- c()
+nRows <- c()
+lengths <- c()
 for (i in 1:length(yearData)) {
         #print(yearData[[i]]['year'])
         tmpsearchDf <- yearData[[i]]
         tmpPropsDf <- merge(propsDf, tmpsearchDf, all = T, by = 'CitedID')
-        tmpPropsDf <- tidyr::drop_na(tmpPropsDf)
         tmpPropsDf <- tmpPropsDf[order(tmpPropsDf$CitingID),]
+        tmpPropsDf <- tidyr::drop_na(tmpPropsDf)
         tmpPropsDf <- tmpPropsDf %>% dplyr::filter(citedSearch == 2)
         currentYear <- yearData[[i]][["year"]][[1]]
+        tmpPropsDf <- tmpPropsDf %>% dplyr::filter(year == currentYear)
         yearCTList <- tmpCTData %>% dplyr::filter(year == currentYear)
+        print(yearCTList$CitingID)
         CtIDList <- yearCTList$CitedID
+        # print(head(tmpPropsDf))
         tmpPropsDf <- tmpPropsDf %>% dplyr::filter(CitingID %in% CtIDList)
         #print(head(tmpPropsDf))
         tmpPropsList <- tmpPropsDf %>% 
                 dplyr::group_by(CitingID) %>% 
                 dplyr::summarise(CitedID = list(CitedID))
+        # print(nrow(tmpPropsList))
+        nRows <- append(nRows, nrow(tmpPropsList))
+        lengths <- append(lengths, length(CtIDList))
+        # print(length(CtIDList))
         proportion <- nrow(tmpPropsList) / length(CtIDList)
-        print(proportion*100)
+        #print(proportion*100)
+        innerList <- list(currentYear, proportion)
+        outerList <- append(outerList, list(innerList))
         propVector <- append(propVector, proportion)
         
 }
+sum(nRows) # should be 2209
+sum(lengths) ## it isnt working and right now I can't work out why, will try again tomorrow
 
-sum(propVector)
 
-getPropCiting <- function(propsDf, yearData) {
-        propYearVector <- c()
-        tmpPropsDf <- propsDf
-        for (i in 1:length(yearData)) {
-                tmpPropsDf <- merge(tmpPropsDf, yearData[[i]], all = T, by = 'CitedID')
-                tmpPropsDf <- tmpPropsDf[order(tmpPropsDf$CitingID),]
-                tmpPropsDf <- tidyr::drop_na(tmpPropsDf)
-                tmpPropsDf <- tmpPropsDf %>% dplyr::filter(citedSearch == 2)
-
-                tmpPropsDf <- tmpPropsDf %>% dplyr::filter(CitingID %in% CtIDList)
-                propsList <- tmpPropsDf %>% 
-                        dplyr::group_by(CitingID) %>% 
-                        dplyr::summarise(CitedID = list(CitedID))
-                propCTPapersCitingML <- nrow(propsList) / length(CtIDList)
-                append(propYearVector, propCTPapersCitingML)
-        }
-        
-        return(propYearVector)
-}
-propVector <- getPropCiting(propsDf, yearData)
 # gephi plot 
 giantConnectedData <- dataPlusEdges[!is.na(dataPlusEdges$CitedID),]
 giantConnectedData <- apply(giantConnectedData,2,as.character)
