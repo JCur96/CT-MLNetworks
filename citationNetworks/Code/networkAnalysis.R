@@ -25,8 +25,9 @@ fullData <- merge(MLData, CTData, all = T)
 names(fullData)[names(fullData) == "X"] <- "ID"
 colnames(fullData)
 fullData$ID <- 1:nrow(fullData)
+# fullData$ID <- 0:nrow(fullData) ?
 write.csv(fullData, "../Data/dataForPythonModules.csv")
-fullData$search <- as.numeric(fullData$search)
+# fullData$search <- as.numeric(fullData$search)
 colnames(edges)
 edges <- edges[c("CitingID", "CitedID")]
 colnames(edges)
@@ -77,30 +78,36 @@ net <- set_vertex_attr(net, "search", value = search)
 #               vertex.color= fullData$color,
 #               edge.arrow.size=.2, layout = coords)
 
-comStructure <- modularity(net, fullData$search)
-comStructure
+# comStructure <- modularity(net, fullData$search)
+# comStructure
+# 
+# ################ useful ###############
+# # what search did these appear in? 
+# # proportion of the two searches in each module 
+# 
+# cluster <- cluster_louvain(net)
+# cluster
+# # modularity(cluster)
+# # modularity(net, membership(cluster))
+# members <- igraph::membership(cluster)
+# members 
+# modularity(net, members)
+# 
+# class(members)
+# membersDf <- as.data.frame(members)
+# write.csv(as.numeric(members), "../Data/membership.csv")
+# need to get the csv from the python version 
 
-################ useful ###############
-# what search did these appear in? 
-# proportion of the two searches in each module 
-
-cluster <- cluster_louvain(net)
-cluster
-# modularity(cluster)
-# modularity(net, membership(cluster))
-members <- igraph::membership(cluster)
-members 
-modularity(net, members)
-
-class(members)
-membersDf <- as.data.frame(members)
-write.csv(as.numeric(members), "../Data/membership.csv")
 # bind the dfs 
-communities <- read.csv("../Data/membership.csv")
+# communities <- read.csv("../Data/membership.csv")
+communities <- read.csv("../Data/pythonCommunityData.csv")
 communities
-names(communities)[names(communities) == "X"] <- "ID"
-names(communities)[names(communities) == "x"] <- "Community"
+# names(communities)[names(communities) == "X"] <- "ID"
+# names(communities)[names(communities) == "x"] <- "Community"
+names(communities)[names(communities) == "community"] <- "Community"
+communities <- communities[c("ID", "Community")]
 fullData <- merge(fullData, communities, all = T, by = 'ID')
+head(fullData)
 # now can see what search each module contains
 # ok maybe drop irrelevant stuff 
 partData <- fullData[c("ID", "search", "Community")]
@@ -128,9 +135,12 @@ for (i in 1:length(groupedData)) {
 }
 CTPropDf <- as.data.frame(unlist(CTProportionList))
 names(CTPropDf)[names(CTPropDf) == "unlist(CTProportionList)"] <- "proportionCT"
-CTPropDf$Community <- 1:nrow(CTPropDf)
-CTPropDf
+# CTPropDf$Community <- 0:(nrow(CTPropDf)-1) # or 
+CTPropDf$Community <- 1:nrow(CTPropDf) 
+CTPropDf$proportionCT
+# partData$proportionCT
 partData <- merge(partData, CTPropDf, all=T, by='Community')
+head(partData)
 MLProportionList <- c()
 for (i in 1:length(groupedData)) {
         tab <- groupedData[[i]]
@@ -190,40 +200,40 @@ write.csv(partData, "../Data/community.csv")
 # graphMembers <- igraph::membership(graphCluster)
 # modularity(graph, graphMembers)
 # graph
-graph <- rewire(net, with = keeping_degseq(niter = vcount(net) * 10))
-graph
-
-write_graph(
-        graph,
-        "../Data/GraphObj.txt",
-        format = c("edgelist"))
-
-graphCluster <- edge.betweenness.community(graph, weights = NULL)
-graphCluster
-modularityList <- c()
-for (i in 1:10) { # 10000
-        # graph <- sample_gnm(6372, 37584, directed = FALSE, loops = FALSE) # where is degree in there? 
-        # needs to maintain both in- and out-degree
-        # igraph_rewire() ???
-        # degree.distribution()
-        # graph should be directed!!!
-        graph <- rewire(net, with = keeping_degseq(niter = vcount(net) * 10))
-        # graphCluster <- cluster_louvain(graph)
-        # graphCluster <- edge.betweenness(graph)
-        graphCluster <- edge.betweenness.community(graph)
-        graphMembers <- igraph::membership(graphCluster)
-        graphModularity <- modularity(graph, graphMembers)
-        modularityList <- append(modularityList, graphModularity)
-}
-modularityList
-hist(modularityList)
-
-g <- make_ring(10)
-g %>%
-        rewire(keeping_degseq(niter = 20)) #%>%
-        #degree()
-print_all(rewire(g, with = keeping_degseq(niter = vcount(g) * 10)))
-plot(g)
+# graph <- rewire(net, with = keeping_degseq(niter = vcount(net) * 10))
+# graph
+# 
+# write_graph(
+#         graph,
+#         "../Data/GraphObj.txt",
+#         format = c("edgelist"))
+# 
+# graphCluster <- edge.betweenness.community(graph, weights = NULL)
+# graphCluster
+# modularityList <- c()
+# for (i in 1:10) { # 10000
+#         # graph <- sample_gnm(6372, 37584, directed = FALSE, loops = FALSE) # where is degree in there? 
+#         # needs to maintain both in- and out-degree
+#         # igraph_rewire() ???
+#         # degree.distribution()
+#         # graph should be directed!!!
+#         graph <- rewire(net, with = keeping_degseq(niter = vcount(net) * 10))
+#         # graphCluster <- cluster_louvain(graph)
+#         # graphCluster <- edge.betweenness(graph)
+#         graphCluster <- edge.betweenness.community(graph)
+#         graphMembers <- igraph::membership(graphCluster)
+#         graphModularity <- modularity(graph, graphMembers)
+#         modularityList <- append(modularityList, graphModularity)
+# }
+# modularityList
+# hist(modularityList)
+# 
+# g <- make_ring(10)
+# g %>%
+#         rewire(keeping_degseq(niter = 20)) #%>%
+#         #degree()
+# print_all(rewire(g, with = keeping_degseq(niter = vcount(g) * 10)))
+# plot(g)
 # visual inspection shows that modularity of clustered members 
 # is outside of 5% tails of hist of random graphs
 # (0.53 compared to 0.23 - 0.25 for 10000 graphs)
