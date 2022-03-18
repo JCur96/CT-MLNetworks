@@ -11,8 +11,10 @@ edges <- read.csv("../Data/edges/edgeList.csv")
 # read data in
 MLData <- read.csv("../Data/ML/autoScreenedML.csv")
 CTData <- read.csv("../Data/CT/autoScreenedCT.csv")
-MLData$search <- 2
-CTData$search <- 1
+# MLData$search <- 2
+# CTData$search <- 1
+MLData$search <- 'ML'
+CTData$search <- 'CT'
 MLData$label <- "ML"
 CTData$label <- "CT"
 MLData$color <- "gold"
@@ -23,6 +25,7 @@ fullData <- merge(MLData, CTData, all = T)
 names(fullData)[names(fullData) == "X"] <- "ID"
 colnames(fullData)
 fullData$ID <- 1:nrow(fullData)
+write.csv(fullData, "../Data/dataForPythonModules.csv")
 fullData$search <- as.numeric(fullData$search)
 colnames(edges)
 edges <- edges[c("CitingID", "CitedID")]
@@ -46,33 +49,33 @@ class(edges)
 edges <- as.matrix(edges)
 class(edges)
 edges
-net <- igraph::graph_from_edgelist(edges, directed = FALSE)
+net <- igraph::graph_from_edgelist(edges, directed = TRUE)
 net <- set_vertex_attr(net, "title", value = nodes)
 net <- set_vertex_attr(net, "author", value = authors)
 net <- set_vertex_attr(net, "journal", value = journal)
 net <- set_vertex_attr(net, "year", value = year)
 net <- set_vertex_attr(net, "search", value = search)
 
-layout <- layout.fruchterman.reingold(net)
-plot(simplify(net),
-     layout=layout, vertex.size=2,
-     vertex.label=NA, 
-     vertex.color= fullData$search,
-     edge.arrow.size=.2)
-plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
-     vertex.label=NA, 
-     vertex.color= fullData$search,
-     edge.arrow.size=.2)
-coords = layout_(net, with_mds())
-plot1 <- plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
-     vertex.label=NA, 
-     vertex.color= fullData$search,
-     edge.arrow.size=.2, layout = coords)
-
-plot2 <- plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
-              vertex.label=NA, 
-              vertex.color= fullData$color,
-              edge.arrow.size=.2, layout = coords)
+# layout <- layout.fruchterman.reingold(net)
+# plot(simplify(net),
+#      layout=layout, vertex.size=2,
+#      vertex.label=NA, 
+#      vertex.color= fullData$search,
+#      edge.arrow.size=.2)
+# plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
+#      vertex.label=NA, 
+#      vertex.color= fullData$search,
+#      edge.arrow.size=.2)
+# coords = layout_(net, with_mds())
+# plot1 <- plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
+#      vertex.label=NA, 
+#      vertex.color= fullData$search,
+#      edge.arrow.size=.2, layout = coords)
+# 
+# plot2 <- plot(delete.vertices(simplify(net), degree(net)==0), vertex.size=2,
+#               vertex.label=NA, 
+#               vertex.color= fullData$color,
+#               edge.arrow.size=.2, layout = coords)
 
 comStructure <- modularity(net, fullData$search)
 comStructure
@@ -168,40 +171,59 @@ write.csv(partData, "../Data/community.csv")
 ################
 
 # is modularity different to random?
-erdos.renyi.game(
-        6372, # number of verticies
-        m = 37584, # number of edges (m) 
-        type = "gnm", # gnm as using 'm' for edges
-        directed = FALSE,
-        loops = FALSE
-)
-
-graph <- sample_gnm(
-        6372,
-        37584,
-        directed = FALSE,
-        loops = FALSE
-)
-
-graphCluster <- cluster_louvain(graph)
-graphMembers <- igraph::membership(graphCluster)
-modularity(graph, graphMembers)
+# erdos.renyi.game(
+#         6372, # number of verticies
+#         m = 37584, # number of edges (m) 
+#         type = "gnm", # gnm as using 'm' for edges
+#         directed = FALSE,
+#         loops = FALSE
+# )
+# 
+# graph <- sample_gnm(
+#         6372,
+#         37584,
+#         directed = FALSE,
+#         loops = FALSE
+# )
+# 
+# graphCluster <- cluster_louvain(graph)
+# graphMembers <- igraph::membership(graphCluster)
+# modularity(graph, graphMembers)
+# graph
+graph <- rewire(net, with = keeping_degseq(niter = vcount(net) * 10))
 graph
 
+write_graph(
+        graph,
+        "../Data/GraphObj.txt",
+        format = c("edgelist"))
+
+graphCluster <- edge.betweenness.community(graph, weights = NULL)
+graphCluster
 modularityList <- c()
-for (i in 1:100) { # 10000
-        graph <- sample_gnm(6372, 37584, directed = FALSE, loops = FALSE) # where is degree in there? 
+for (i in 1:10) { # 10000
+        # graph <- sample_gnm(6372, 37584, directed = FALSE, loops = FALSE) # where is degree in there? 
         # needs to maintain both in- and out-degree
         # igraph_rewire() ???
         # degree.distribution()
         # graph should be directed!!!
-        graphCluster <- cluster_louvain(graph)
+        graph <- rewire(net, with = keeping_degseq(niter = vcount(net) * 10))
+        # graphCluster <- cluster_louvain(graph)
+        # graphCluster <- edge.betweenness(graph)
+        graphCluster <- edge.betweenness.community(graph)
         graphMembers <- igraph::membership(graphCluster)
         graphModularity <- modularity(graph, graphMembers)
         modularityList <- append(modularityList, graphModularity)
 }
 modularityList
 hist(modularityList)
+
+g <- make_ring(10)
+g %>%
+        rewire(keeping_degseq(niter = 20)) #%>%
+        #degree()
+print_all(rewire(g, with = keeping_degseq(niter = vcount(g) * 10)))
+plot(g)
 # visual inspection shows that modularity of clustered members 
 # is outside of 5% tails of hist of random graphs
 # (0.53 compared to 0.23 - 0.25 for 10000 graphs)
