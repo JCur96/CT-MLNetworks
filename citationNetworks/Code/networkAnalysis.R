@@ -189,8 +189,12 @@ modularity(graph, graphMembers)
 graph
 
 modularityList <- c()
-for (i in 1:10000) {
-        graph <- sample_gnm(6372, 37584, directed = FALSE, loops = FALSE)
+for (i in 1:100) { # 10000
+        graph <- sample_gnm(6372, 37584, directed = FALSE, loops = FALSE) # where is degree in there? 
+        # needs to maintain both in- and out-degree
+        # igraph_rewire() ???
+        # degree.distribution()
+        # graph should be directed!!!
         graphCluster <- cluster_louvain(graph)
         graphMembers <- igraph::membership(graphCluster)
         graphModularity <- modularity(graph, graphMembers)
@@ -287,26 +291,36 @@ class(citationListsByNode)
 head(citationListsByNode)
 
 ## now do actualy proportions 
+head(edgeDf)
 propsDf <- edgeDf
-searchDf <- fullData[c("CitingID", "search")]
-searchDf
+searchDf <- fullData[c("CitingID", "search",  "year")]
+head(searchDf) # merge( by.x, by.y)
 names(searchDf)[names(searchDf) == "CitingID"] <- "CitedID"
 names(searchDf)[names(searchDf) == "search"] <- "citedSearch"
 propsDf <- merge(propsDf, searchDf, all = T, by = 'CitedID')
 propsDf <- propsDf[order(propsDf$CitingID),]
 propsDf <- tidyr::drop_na(propsDf)
+head(propsDf)
+yearDf <- propsDf[c("year", "citedSearch")]
+propsDf <- propsDf[!(is.na(propsDf$year) | propsDf$year==" "), ]
+propsDf
+propsDf <- propsDf[order(propsDf$year),]
+propsDf
 colnames(propsDf)
 propsDf <- propsDf %>% dplyr::filter(citedSearch == 2)
 head(propsDf) # this is all the papers which cite ML papers
 # now need to filter to those only in the CT seach
 tmpCTData <- fullData %>% dplyr::filter(search == 1)
 CtIDList <- tmpCTData$CitingID
+# length(CtIDList)
+head(CtIDList)
 propsDf <- propsDf %>% dplyr::filter(CitingID %in% CtIDList)
 head(propsDf)
 propsList <- propsDf %>% 
         dplyr::group_by(CitingID) %>% 
         dplyr::summarise(CitedID = list(CitedID))
 # compare length of list of CT IDs to the nrow of this new DF to get proportion
+# propsList <- tidyr::drop_na(propsList)
 nrow(propsList)
 length(CtIDList)
 propCTPapersCitingML <- nrow(propsList) / length(CtIDList)
@@ -329,35 +343,48 @@ propsDf <- edgeDf
 searchDf <- fullData[c("CitingID", "search", "year")]
 names(searchDf)[names(searchDf) == "CitingID"] <- "CitedID"
 names(searchDf)[names(searchDf) == "search"] <- "citedSearch"
+propsDf <- merge(propsDf, searchDf, all = T, by = 'CitedID')
+# propsDf$CitingID
+propsDf <- propsDf[order(propsDf$CitingID),]
+propsDf <- tidyr::drop_na(propsDf)
+propsDf <- propsDf %>% dplyr::filter(citedSearch == 2)
 yearData <- searchDf %>% dplyr::group_split(year)
-length(yearData)
-tmpCTData <- searchDf %>% dplyr::filter(citedSearch == 1)
+#length(yearData)
+tmpCTData <- searchDf %>% dplyr::filter(citedSearch == 1) # search 1 is CT
 # CtIDList <- tmpCTData$CitingID
-
-yearData[[1]][["year"]][[1]]
+# yearData[[1]][["year"]][[1]]
 propVector <- c()
 outerList <- c()
 nRows <- c()
 lengths <- c()
 for (i in 1:length(yearData)) {
         #print(yearData[[i]]['year'])
-        tmpsearchDf <- yearData[[i]]
-        tmpPropsDf <- merge(propsDf, tmpsearchDf, all = T, by = 'CitedID')
-        tmpPropsDf <- tmpPropsDf[order(tmpPropsDf$CitingID),]
-        tmpPropsDf <- tidyr::drop_na(tmpPropsDf)
-        tmpPropsDf <- tmpPropsDf %>% dplyr::filter(citedSearch == 2)
+        # tmpsearchDf <- yearData[[i]]
+        tmpPropsDf <- propsDf
+        # print(head(tmpPropsDf$CitingID))
+        # tmpPropsDf <- merge(propsDf, tmpsearchDf, all = T, by = 'CitedID')
+        # tmpPropsDf <- tmpPropsDf[order(tmpPropsDf$CitingID),]
+        # tmpPropsDf <- tidyr::drop_na(tmpPropsDf)
+        # tmpPropsDf <- tmpPropsDf %>% dplyr::filter(citedSearch == 2)
         currentYear <- yearData[[i]][["year"]][[1]]
-        tmpPropsDf <- tmpPropsDf %>% dplyr::filter(year == currentYear)
+        yearPropsDf <- tmpPropsDf %>% dplyr::filter(year == currentYear)
+        #print(head(yearPropsDf$year))
+        # print(class(yearPropsDf))
+
         yearCTList <- tmpCTData %>% dplyr::filter(year == currentYear)
-        print(yearCTList$CitingID)
-        CtIDList <- yearCTList$CitedID
+        #print(head(tmpCTData$CitedID))
+        #print(yearCTList)
+        #print(yearCTList$CitingID)
+        CtIDList <- yearCTList$CitedID # might need to go back to CitingID
         # print(head(tmpPropsDf))
-        tmpPropsDf <- tmpPropsDf %>% dplyr::filter(CitingID %in% CtIDList)
+        yearPropsDf <- yearPropsDf %>% dplyr::filter(CitingID %in% CtIDList)
+        # print(class(yearPropsDf))
         #print(head(tmpPropsDf))
-        tmpPropsList <- tmpPropsDf %>% 
+        tmpPropsList <- yearPropsDf %>% 
                 dplyr::group_by(CitingID) %>% 
                 dplyr::summarise(CitedID = list(CitedID))
-        # print(nrow(tmpPropsList))
+        row <- nrow(tmpPropsList)
+        #print(tmpPropsList)
         nRows <- append(nRows, nrow(tmpPropsList))
         lengths <- append(lengths, length(CtIDList))
         # print(length(CtIDList))
@@ -369,8 +396,196 @@ for (i in 1:length(yearData)) {
         
 }
 sum(nRows) # should be 2209
-sum(lengths) ## it isnt working and right now I can't work out why, will try again tomorrow
+sum(lengths) # should be 4640
+## it isnt working and right now I can't work out why, will try again tomorrow
+# OK i think I'm jsut too stupid to do it this way, gonna do it the idiots ways
 
+# citing vs cited year???
+# need to do math against full data number of CT papers
+year2012 <- yearData[[1]]
+year2013 <- yearData[[2]]
+year2014 <- yearData[[3]]
+year2015 <- yearData[[4]]
+year2016 <- yearData[[5]]
+year2017 <- yearData[[6]]
+year2018 <- yearData[[7]]
+year2019 <- yearData[[8]]
+year2020 <- yearData[[9]]
+year2021 <- yearData[[10]]
+year2022 <- yearData[[11]]
+
+# CitingID citingSearch CitedID citedSearch
+
+# CitingID citingSearch CitingYear CitedID citedSearch citedYear
+
+
+
+propsDf <- edgeDf
+searchDf <- fullData[c("CitingID", "search",  "year")]
+searchDf
+names(searchDf)[names(searchDf) == "CitingID"] <- "CitedID"
+names(searchDf)[names(searchDf) == "search"] <- "citedSearch"
+propsDf <- merge(propsDf, searchDf, all = T, by = 'CitedID')
+propsDf <- propsDf[order(propsDf$CitingID),]
+propsDf <- tidyr::drop_na(propsDf)
+propsDf <- propsDf[!(is.na(propsDf$year) | propsDf$year==" "), ]
+propsDf
+propsDf <- propsDf[order(propsDf$year),]
+propsDf
+colnames(propsDf)
+propsDf <- propsDf %>% dplyr::filter(citedSearch == 2)
+head(propsDf) # this is all the papers which cite ML papers
+# now need to filter to those only in the CT seach
+yearDataList <- propsDf %>% dplyr::group_split(year)
+year2012 <- yearDataList[[1]]
+year2013 <- yearDataList[[2]]
+year2014 <- yearDataList[[3]]
+year2015 <- yearDataList[[4]]
+year2016 <- yearDataList[[5]]
+year2017 <- yearDataList[[6]]
+year2018 <- yearDataList[[7]]
+year2019 <- yearDataList[[8]]
+year2020 <- yearDataList[[9]]
+year2021 <- yearDataList[[10]]
+year2022 <- yearDataList[[11]]
+
+tmpCTData <- fullData %>% dplyr::filter(search == 1)
+tmpCTData <- tmpCTData[c("CitingID", "year")]
+yearCTData <- tmpCTData %>% dplyr::group_split(year)
+ctYear2012 <- yearCTData[[1]]
+ctYear2013 <- yearCTData[[2]]
+ctYear2014 <- yearCTData[[3]]
+ctYear2015 <- yearCTData[[4]]
+ctYear2016 <- yearCTData[[5]]
+ctYear2017 <- yearCTData[[6]]
+ctYear2018 <- yearCTData[[7]]
+ctYear2019 <- yearCTData[[8]]
+ctYear2020 <- yearCTData[[9]]
+ctYear2021 <- yearCTData[[10]]
+ctYear2022 <- yearCTData[[11]]
+
+
+CtIDList2012 <- ctYear2012$CitingID
+CtIDList2013 <- ctYear2013$CitingID
+CtIDList2014 <- ctYear2014$CitingID
+CtIDList2015 <- ctYear2015$CitingID
+CtIDList2016 <- ctYear2016$CitingID
+CtIDList2017 <- ctYear2017$CitingID
+CtIDList2018 <- ctYear2018$CitingID
+CtIDList2019 <- ctYear2019$CitingID
+CtIDList2020 <- ctYear2020$CitingID
+CtIDList2021 <- ctYear2021$CitingID
+CtIDList2022 <- ctYear2022$CitingID
+
+length(CtIDList2012) +
+length(CtIDList2013) +
+length(CtIDList2014) +
+length(CtIDList2015) +
+length(CtIDList2016) +
+length(CtIDList2017) +
+length(CtIDList2018) +
+length(CtIDList2019) +
+length(CtIDList2020) +
+length(CtIDList2021) +
+length(CtIDList2022) # thats the 4640 one then 
+
+
+# year2012 <- fullData %>% dplyr::filter(year == 2012)
+# year2012 <- year2012[c("CitingID", "search", "year")]
+# year2012 <- year2012 %>% dplyr::filter(search == 1)
+# length(CtIDList2012)
+year2012
+CtIDList2012
+
+print(year2012$CitingID %in% CtIDList2012)
+year2012 <- year2012 %>% dplyr::filter(CitingID %in% CtIDList2012)
+head(year2012)
+nrow(year2012)
+year2012List <- year2012 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2012 <- nrow(year2012List) / length(CtIDList2012)
+row2012 <- nrow(year2012List)
+
+year2013 <- year2013 %>% dplyr::filter(CitingID %in% CtIDList2013)
+year2013List <- year2013 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2013 <- nrow(year2013List) / length(CtIDList2013)
+row2013 <- nrow(year2013List)
+
+year2014 <- year2014 %>% dplyr::filter(CitingID %in% CtIDList2014)
+year2014List <- year2014 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2014 <- nrow(year2014List) / length(CtIDList2014)
+row2014 <- nrow(year2014List)
+
+year2015 <- year2015 %>% dplyr::filter(CitingID %in% CtIDList2015)
+year2015List <- year2015 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2015 <- nrow(year2015List) / length(CtIDList2015)
+row2015 <- nrow(year2015List)
+
+year2016 <- year2016 %>% dplyr::filter(CitingID %in% CtIDList2016)
+year2016List <- year2016 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2016 <- nrow(year2016List) / length(CtIDList2016)
+row2016 <- nrow(year2016List)
+
+year2017 <- year2017 %>% dplyr::filter(CitingID %in% CtIDList2017)
+year2017List <- year2017 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2017 <- nrow(year2017List) / length(CtIDList2017)
+row2017 <- nrow(year2017List)
+
+year2018 <- year2018 %>% dplyr::filter(CitingID %in% CtIDList2018)
+year2018List <- year2018 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2018 <- nrow(year2018List) / length(CtIDList2018)
+row2018 <- nrow(year2018List)
+
+year2019 <- year2019 %>% dplyr::filter(CitingID %in% CtIDList2019)
+year2019List <- year2019 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2019 <- nrow(year2019List) / length(CtIDList2019)
+row2019 <- nrow(year2019List)
+
+year2020 <- year2020 %>% dplyr::filter(CitingID %in% CtIDList2020)
+year2020List <- year2020 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2020 <- nrow(year2020List) / length(CtIDList2020)
+row2020 <- nrow(year2020List)
+
+year2021 <- year2021 %>% dplyr::filter(CitingID %in% CtIDList2021)
+year2021List <- year2021 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2021 <- nrow(year2021List) / length(CtIDList2021)
+row2021 <- nrow(year2021List)
+
+year2022 <- year2022 %>% dplyr::filter(CitingID %in% CtIDList2022)
+year2022List <- year2022 %>% 
+        dplyr::group_by(CitingID) %>% 
+        dplyr::summarise(CitedID = list(CitedID))
+prop2022 <- nrow(year2022List) / length(CtIDList2022)
+row2022 <- nrow(year2022List)
+
+rows <- list(row2012, row2013, row2014, row2015, row2016, row2017, row2018, row2019, row2020, row2021, row2022)
+props <- list(prop2012, prop2013, prop2014, prop2015, prop2016, prop2017, prop2018, prop2019, prop2020, prop2021, prop2022)
+Reduce("+", props)
+Reduce("+", rows)
+years <- list(2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022)
+
+# I cannot see what is wrong with this so must assume this and the for loop have actually worked and somehow my logic 
+# (which is the same for the full data set?) is incorrect
+p <- plot(years, props)
 
 # gephi plot 
 giantConnectedData <- dataPlusEdges[!is.na(dataPlusEdges$CitedID),]
