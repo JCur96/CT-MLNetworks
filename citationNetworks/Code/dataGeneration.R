@@ -4,6 +4,7 @@ set.seed(1)
 setwd("C:/docNonNetwork/RProjects/CT-MLNetworks/citationNetworks/Code")
 # imports
 library(igraph)
+library(dplyr)
 library(RColorBrewer)
 
 edges <- read.csv("../Data/edges/edgeList.csv")
@@ -19,6 +20,13 @@ MLData$color <- "gold"
 CTData$color <- "blue"
 
 fullData <- merge(MLData, CTData, all = T) 
+
+numCTpapers <-  fullData %>% dplyr::filter(search == 'CT')#unique(fullData$ID)
+# numCTpapers <- nrow(numCTpapers)
+numCTpapersList <- numCTpapers$ID
+length(numCTpapersList)
+save(numCTpapersList, file="../Data/CTIDs.RData")
+numCTpapersList
 
 names(fullData)[names(fullData) == "X"] <- "ID"
 colnames(fullData)
@@ -50,7 +58,7 @@ head(edges)
 
 read.csv("..Data/proportionsData.csv")
 
-edges <- edges[, c(1, 5, 6, 2, 3, 4)]
+edges <- edges[, c(1, 5, 6, 2, 3, 4)] # writes out with extra col because of course
 head(edges)
 write.csv(edges, "../Data/proportionsData.csv")
 
