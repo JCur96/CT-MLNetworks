@@ -138,6 +138,8 @@ names(CTPropDf)[names(CTPropDf) == "unlist(CTProportionList)"] <- "proportionCT"
 # CTPropDf$Community <- 0:(nrow(CTPropDf)-1) # or 
 CTPropDf$Community <- 1:nrow(CTPropDf) 
 CTPropDf$proportionCT
+meanCTPropPerComm <- mean(CTPropDf$proportionCT)
+meanCTPropPerComm
 # partData$proportionCT
 partData <- merge(partData, CTPropDf, all=T, by='Community')
 head(partData)
@@ -339,10 +341,12 @@ propsDf
 propsDf <- propsDf[order(propsDf$year),]
 propsDf
 colnames(propsDf)
-propsDf <- propsDf %>% dplyr::filter(citedSearch == 2)
+# propsDf <- propsDf %>% dplyr::filter(citedSearch == 2)
+propsDf <- propsDf %>% dplyr::filter(citedSearch == 'ML')
 head(propsDf) # this is all the papers which cite ML papers
 # now need to filter to those only in the CT seach
-tmpCTData <- fullData %>% dplyr::filter(search == 1)
+# tmpCTData <- fullData %>% dplyr::filter(search == 1)
+tmpCTData <- fullData %>% dplyr::filter(search == 'CT')
 CtIDList <- tmpCTData$CitingID
 # length(CtIDList)
 head(CtIDList)
