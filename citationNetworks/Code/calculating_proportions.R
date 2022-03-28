@@ -42,10 +42,23 @@ mean(proportion_byyear)
 # ggplot this out 
 class(proportion_byyear)
 proportion_byyear
-prop <- as.data.frame(proportion_byyear)
-prop
-p <- ggplot(prop)
-p
+prop <- data.frame(keyName=names(proportion_byyear), value=proportion_byyear, row.names=NULL)
+names(prop)[names(prop) == c("keyName", "value")] <- c("Year", "Proportion")
+captionText <- "Figure 2. Proportion of papers appearing in the camera trap specific search that cite papers appearing 
+in the camera trap with machine learning search. The mean yearly proportion is 0.42. "
+p <- ggplot(prop, aes(Year, Proportion)) + 
+  geom_point(size = 4) +
+  xlab("Year") +
+  ylab("Proportion") +
+  labs(caption = captionText) #+
+  #geom_hline(yintercept = mean(prop$proportion), color="blue")
+p # maybe add annotations for how many CT papers each year has? 
+p + theme(
+  # axis.text = element_text(size = 20),
+  text = element_text(size = 20),
+  plot.caption = element_text(hjust = 0, size = 30, face = 'bold')
+)
+ggsave("../Graphics/propByYear.png", p, width = 15, height = 12, units = 'cm')
 
 ########### ----- Sense check to make sure numbers match up between overall and by year data
 length(unique(edges_ct2ml$citingID)) # overall number of CT papers that cite ML papers (from above)
